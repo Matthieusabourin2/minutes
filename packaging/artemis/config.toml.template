@@ -132,3 +132,10 @@ dictation_threshold_secs = 120
 
 [screen_context]
 enabled = false
+
+# Désactivé pour Artemis : les commerciaux font 90 % de RDV en face-à-face,
+# pas de visio. La détection auto Zoom/Teams/Webex génère des faux positifs
+# (le micro ambiant déclenche un recording en arrière-plan) et pollue
+# ~/.minutes/jobs/ avec des clips de quelques secondes sans valeur.
+[call_detection]
+enabled = false
