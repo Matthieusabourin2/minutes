@@ -8,7 +8,11 @@
 # If you delete this file, the next launch of Minutes will recreate it
 # from the embedded Artemis defaults.
 
-output_dir = "~/meetings"
+# output_dir et watch.paths sont volontairement omis : les defauts
+# compiles de minutes (home_dir().join("meetings") etc.) produisent un
+# chemin absolu correct, tandis qu'un "~/meetings" en toml reste une
+# chaine litterale (Rust PathBuf n'expand pas le ~) et provoque une
+# erreur "Read-only file system" au moment d'ecrire le premier resume.
 
 [identity]
 # Nom du commercial (remplace par ton prénom/nom pour améliorer la
@@ -126,7 +130,9 @@ PARTICIPANTS:
 """
 
 [watch]
-paths = ["~/.minutes/inbox"]
+# paths laisse aux defauts compiles (minutes_dir().join("inbox")) pour
+# la meme raison que output_dir plus haut : pas d'expansion de tilde
+# cote Rust.
 settle_delay_ms = 3000
 dictation_threshold_secs = 120
 
