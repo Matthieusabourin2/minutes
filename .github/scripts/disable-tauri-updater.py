@@ -38,8 +38,10 @@ def main() -> int:
         json.dumps(data, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+    # ASCII-only output: Python on windows-latest opens stdout as cp1252
+    # by default and chokes on Unicode arrows / em-dashes in print().
     print(
-        f"Patched {CONF}: createUpdaterArtifacts {before!r} → False "
+        f"Patched {CONF}: createUpdaterArtifacts {before!r} -> False "
         "(no updater .tar.gz will be produced / signed)."
     )
     return 0
