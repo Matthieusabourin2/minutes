@@ -61,6 +61,11 @@ jobs:
         run: |
           python3 .github/scripts/generate-artemis-config.py
 
+      - name: Disable Tauri updater artifacts (Artemis has no update channel)
+        shell: bash
+        run: |
+          python3 .github/scripts/disable-tauri-updater.py
+
       - name: Build Tauri NSIS installer with Artemis defaults
         working-directory: tauri/src-tauri
         shell: bash
@@ -133,6 +138,9 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 .github/scripts/generate-artemis-config.py
+
+      - name: Disable Tauri updater artifacts (Artemis has no update channel)
+        run: python3 .github/scripts/disable-tauri-updater.py
 
       - name: Build Tauri app + DMG with Artemis defaults (unsigned)
         working-directory: tauri/src-tauri
