@@ -11,6 +11,10 @@ cuda = ["minutes-core/cuda"]
 hipblas = ["minutes-core/hipblas"]
 metal = ["minutes-core/metal"]
 vulkan = ["minutes-core/vulkan"]
+# Artemis/Catalia: embed and auto-seed the Artemis default config.toml
+# on first launch. Forwarded to minutes-core — see that crate's feature
+# docs. Fresh upstream builds leave this off.
+artemis-default-config = ["minutes-core/artemis-default-config"]
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png", "devtools", "macos-private-api"] }

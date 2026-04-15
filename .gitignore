@@ -26,6 +26,11 @@ dist/
 .env.*
 .env.local
 
+# Artemis/Catalia: generated at build time by the build-artemis workflow
+# (contains the Anthropic API key substituted from the repo secret).
+# NEVER commit this file.
+crates/core/src/artemis-default-config.toml
+
 # OS
 .DS_Store
 

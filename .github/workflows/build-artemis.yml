@@ -1,0 +1,158 @@
+name: Build Artemis installers
+
+# Builds custom Windows (.exe / NSIS) and macOS (.dmg) installers of
+# Minutes for Artemis Paysages. Each installer embeds a Catalia-signed
+# default config.toml with the ProcessCom-aware French summary prompt
+# and the Catalia Anthropic API key (injected from the repo secret at
+# build time, never committed to the repo).
+#
+# Requires the repository secret ANTHROPIC_API_KEY to be set.
+# Set it at: Settings → Secrets and variables → Actions → New repository secret.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - artemis-installer
+
+env:
+  CARGO_TERM_COLOR: always
+  TAURI_CLI_VERSION: "2.10.1"
+  ARTEMIS_FEATURES: "artemis-default-config"
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # Windows NSIS installer → Minutes-Artemis-Setup.exe
+  # ────────────────────────────────────────────────────────────────
+  windows-artemis:
+    name: Build Windows installer (unsigned)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-artemis-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache ONNX Runtime binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/dfbin
+          key: ${{ runner.os }}-ort-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Tauri CLI
+        shell: bash
+        run: cargo install tauri-cli --version "${TAURI_CLI_VERSION}" --locked
+
+      - name: Generate Artemis default config (inject API key from secret)
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python3 .github/scripts/generate-artemis-config.py
+
+      - name: Build Tauri NSIS installer with Artemis defaults
+        working-directory: tauri/src-tauri
+        shell: bash
+        env:
+          CARGO_NET_RETRY: "3"
+          # Cap ggml/whisper.cpp at AVX2 so the shipped binary runs on older
+          # Windows laptops without AVX-512. Matches upstream release.
+          GGML_NATIVE: "OFF"
+          GGML_AVX: "ON"
+          GGML_AVX2: "ON"
+          GGML_AVX512: "OFF"
+          GGML_AVX512_VBMI: "OFF"
+          GGML_AVX512_VNNI: "OFF"
+          GGML_AVX512_BF16: "OFF"
+        run: cargo tauri build --features "${ARTEMIS_FEATURES}" --ci --bundles nsis --no-sign
+
+      - name: Rename NSIS installer to Minutes-Artemis-Setup.exe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t installers < <(find target/release/bundle/nsis -maxdepth 1 -type f -name '*.exe' | sort)
+          if [ "${#installers[@]}" -eq 0 ]; then
+            echo "ERROR: no NSIS installer produced under target/release/bundle/nsis" >&2
+            exit 1
+          fi
+          cp -f "${installers[0]}" Minutes-Artemis-Setup.exe
+          ls -la Minutes-Artemis-Setup.exe
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minutes-Artemis-Windows
+          path: Minutes-Artemis-Setup.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────────────
+  # macOS DMG (unsigned) → Minutes-Artemis.dmg
+  # ────────────────────────────────────────────────────────────────
+  macos-artemis:
+    name: Build macOS DMG (unsigned)
+    runs-on: macos-latest
+
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set CXXFLAGS for whisper.cpp
+        run: echo "CXXFLAGS=-I$(xcrun --show-sdk-path)/usr/include/c++/v1" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-artemis-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "${TAURI_CLI_VERSION}" --locked
+
+      - name: Generate Artemis default config (inject API key from secret)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 .github/scripts/generate-artemis-config.py
+
+      - name: Build Tauri app + DMG with Artemis defaults (unsigned)
+        working-directory: tauri/src-tauri
+        run: cargo tauri build --features "${ARTEMIS_FEATURES}" --bundles app,dmg
+
+      - name: Rename DMG to Minutes-Artemis.dmg
+        run: |
+          set -euo pipefail
+          dmg_src=$(find target/release/bundle/dmg -maxdepth 1 -type f -name '*.dmg' | head -1)
+          if [ -z "${dmg_src}" ]; then
+            echo "ERROR: no DMG produced under target/release/bundle/dmg" >&2
+            exit 1
+          fi
+          cp -f "${dmg_src}" Minutes-Artemis.dmg
+          ls -la Minutes-Artemis.dmg
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minutes-Artemis-macOS
+          path: Minutes-Artemis.dmg
+          if-no-files-found: error
+          retention-days: 30

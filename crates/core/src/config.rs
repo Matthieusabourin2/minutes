@@ -701,6 +701,39 @@ impl Default for WatchConfig {
 
 // ── Loading ──────────────────────────────────────────────────
 
+/// Artemis/Catalia: when compiled with the `artemis-default-config` feature,
+/// embed a branded default config.toml into the binary. The workflow
+/// generates `artemis-default-config.toml` at build time with the
+/// Anthropic key substituted from `secrets.ANTHROPIC_API_KEY`.
+#[cfg(feature = "artemis-default-config")]
+const ARTEMIS_DEFAULT_CONFIG_TOML: &str = include_str!("artemis-default-config.toml");
+
+/// Artemis/Catalia: if no user config exists at `path`, seed it with the
+/// embedded default. Runs on CLI and Tauri first-launch. No-op when the
+/// feature is off or the file already exists (user edits are preserved).
+fn maybe_seed_default_config(path: &Path) {
+    #[cfg(feature = "artemis-default-config")]
+    {
+        if path.exists() {
+            return;
+        }
+        if let Some(parent) = path.parent() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                tracing::warn!(error = %e, path = ?parent, "failed to create config parent dir for Artemis seeding");
+                return;
+            }
+        }
+        match std::fs::write(path, ARTEMIS_DEFAULT_CONFIG_TOML) {
+            Ok(()) => tracing::info!(path = ?path, "seeded Artemis default config.toml on first launch"),
+            Err(e) => tracing::warn!(error = %e, path = ?path, "failed to seed Artemis default config.toml"),
+        }
+    }
+    #[cfg(not(feature = "artemis-default-config"))]
+    {
+        let _ = path;
+    }
+}
+
 impl Config {
     /// Standard config file location.
     pub fn config_path() -> PathBuf {
@@ -712,6 +745,7 @@ impl Config {
     /// If the config file exists but is invalid, logs a warning and returns defaults.
     pub fn load() -> Self {
         let path = Self::config_path();
+        maybe_seed_default_config(&path);
         Self::load_from(&path)
     }
 
@@ -747,6 +781,7 @@ impl Config {
     /// changes anything.
     pub fn load_with_migrations() -> Self {
         let path = Self::config_path();
+        maybe_seed_default_config(&path);
         Self::load_with_migrations_from(&path)
     }
 

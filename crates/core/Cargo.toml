@@ -21,6 +21,12 @@ metal = ["whisper-rs/metal"]
 vulkan = ["whisper-rs/vulkan"]
 streaming = ["dep:crossbeam-channel"]
 denoise = ["dep:nnnoiseless"]
+# Artemis/Catalia: embed the Artemis-branded default config.toml into the
+# binary and write it to ~/.config/minutes/config.toml on first launch if
+# no user config exists. The template is generated at build time by the
+# Artemis workflow into crates/core/src/artemis-default-config.toml.
+# Fresh upstream builds leave this feature off — behavior is unchanged.
+artemis-default-config = []
 
 [dependencies]
 serde = { workspace = true }
