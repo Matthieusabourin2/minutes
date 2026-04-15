@@ -408,6 +408,42 @@ const OPENAI_SUMMARY_MODEL: &str = "gpt-4o-mini";
 const OPENAI_VISION_MODEL: &str = "gpt-4o";
 const OPENAI_TITLE_MODEL: &str = OPENAI_SUMMARY_MODEL;
 
+// ── Artemis/Catalia: pluggable prompt + config-provided Anthropic key ──
+//
+// `resolve_system_prompt` returns the user-provided
+// `[summarization].custom_prompt` when set, otherwise the built-in
+// English `SYSTEM_PROMPT`. This lets operators (e.g. Catalia for Artemis
+// Paysages) ship a domain-specific prompt in config.toml without forking.
+//
+// `resolve_anthropic_key` prefers `[summarization].api_key` from
+// config.toml, then falls back to `ANTHROPIC_API_KEY` env var.
+
+fn resolve_system_prompt(config: &Config) -> &str {
+    config
+        .summarization
+        .custom_prompt
+        .as_deref()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or(SYSTEM_PROMPT)
+}
+
+fn resolve_anthropic_key(config: &Config) -> Result<String, String> {
+    if let Some(k) = config
+        .summarization
+        .api_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        Ok(k.to_string())
+    } else {
+        std::env::var("ANTHROPIC_API_KEY").map_err(|_| {
+            "ANTHROPIC_API_KEY not set (neither env var nor [summarization].api_key in config.toml)"
+                .to_string()
+        })
+    }
+}
+
 fn build_prompt(transcript: &str, chunk_max_tokens: usize) -> Vec<String> {
     // Rough token estimate: ~4 chars per token
     let max_chars = chunk_max_tokens * 4;
@@ -915,7 +951,7 @@ fn summarize_with_agent(
 
 fn summarize_with_agent_impl(
     transcript: &str,
-    _config: &Config,
+    config: &Config,
     agent_cmd: String,
 ) -> Result<Summary, Box<dyn std::error::Error>> {
     use std::io::Write;
@@ -934,7 +970,8 @@ fn summarize_with_agent_impl(
 
     let prompt = format!(
         "{}\n\nSummarize this transcript:\n\n<transcript>\n{}\n</transcript>",
-        SYSTEM_PROMPT, truncated
+        resolve_system_prompt(config),
+        truncated
     );
 
     tracing::info!(agent = %agent_cmd, prompt_len = prompt.len(), "summarizing via agent CLI");
@@ -1032,8 +1069,7 @@ fn summarize_with_claude(
     screen_files: &[std::path::PathBuf],
     config: &Config,
 ) -> Result<Summary, Box<dyn std::error::Error>> {
-    let api_key = std::env::var("ANTHROPIC_API_KEY")
-        .map_err(|_| "ANTHROPIC_API_KEY not set. Export it or switch to engine = \"ollama\"")?;
+    let api_key = resolve_anthropic_key(config)?;
 
     let chunks = build_prompt(transcript, config.summarization.chunk_max_tokens);
     let mut all_summaries = Vec::new();
@@ -1070,7 +1106,7 @@ fn summarize_with_claude(
         let body = serde_json::json!({
             "model": CLAUDE_MODEL,
             "max_tokens": 1024,
-            "system": SYSTEM_PROMPT,
+            "system": resolve_system_prompt(config),
             "messages": [{
                 "role": "user",
                 "content": content_blocks
@@ -1097,7 +1133,7 @@ fn summarize_with_claude(
         let synth_body = serde_json::json!({
             "model": CLAUDE_MODEL,
             "max_tokens": 1024,
-            "system": "Combine these partial meeting summaries into a single cohesive summary. Use the same KEY POINTS / DECISIONS / ACTION ITEMS format.",
+            "system": "Combine these partial meeting summaries into a single cohesive summary. Preserve the section structure, headers, and formatting used in the input summaries.",
             "messages": [{
                 "role": "user",
                 "content": format!("Combine these summaries:\n\n{}", combined)
@@ -1189,7 +1225,7 @@ fn summarize_with_openai(
         let body = serde_json::json!({
             "model": model,
             "messages": [
-                { "role": "system", "content": SYSTEM_PROMPT },
+                { "role": "system", "content": resolve_system_prompt(config) },
                 { "role": "user", "content": content_parts }
             ],
             "max_tokens": 1024,
@@ -1255,7 +1291,7 @@ fn summarize_with_mistral(
         let body = serde_json::json!({
             "model": model,
             "messages": [
-                { "role": "system", "content": SYSTEM_PROMPT },
+                { "role": "system", "content": resolve_system_prompt(config) },
                 { "role": "user", "content": content_parts }
             ],
             "max_tokens": 1024,
@@ -1280,7 +1316,7 @@ fn summarize_with_mistral(
         let synth_body = serde_json::json!({
             "model": model,
             "messages": [
-                { "role": "system", "content": "Combine these partial meeting summaries into a single cohesive summary. Use the same KEY POINTS / DECISIONS / ACTION ITEMS format." },
+                { "role": "system", "content": "Combine these partial meeting summaries into a single cohesive summary. Preserve the section structure, headers, and formatting used in the input summaries." },
                 { "role": "user", "content": format!("Combine these summaries:\n\n{}", combined) }
             ],
             "max_tokens": 1024,
@@ -1314,7 +1350,7 @@ fn summarize_with_ollama(
     for chunk in &chunks {
         let body = serde_json::json!({
             "model": &config.summarization.ollama_model,
-            "prompt": format!("{}\n\nSummarize this transcript:\n\n<transcript>\n{}\n</transcript>", SYSTEM_PROMPT, chunk),
+            "prompt": format!("{}\n\nSummarize this transcript:\n\n<transcript>\n{}\n</transcript>", resolve_system_prompt(config), chunk),
             "stream": false,
         });
 
@@ -1475,8 +1511,7 @@ fn run_title_refinement_prompt(
             run_title_refinement_via_agent(prompt, &resolve_agent_path(&agent_cmd))
         }
         "claude" => {
-            let api_key =
-                std::env::var("ANTHROPIC_API_KEY").map_err(|_| "ANTHROPIC_API_KEY not set")?;
+            let api_key = resolve_anthropic_key(config)?;
             let body = serde_json::json!({
                 "model": CLAUDE_MODEL,
                 "max_tokens": 64,
@@ -1783,8 +1818,7 @@ fn run_speaker_mapping_prompt(
     match config.summarization.engine.as_str() {
         "agent" => run_speaker_mapping_via_agent(prompt, config),
         "claude" => {
-            let api_key =
-                std::env::var("ANTHROPIC_API_KEY").map_err(|_| "ANTHROPIC_API_KEY not set")?;
+            let api_key = resolve_anthropic_key(config)?;
             let body = serde_json::json!({"model":"claude-sonnet-4-20250514","max_tokens":256,"messages":[{"role":"user","content":prompt}]});
             let resp: serde_json::Value = agent
                 .post("https://api.anthropic.com/v1/messages")

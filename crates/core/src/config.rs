@@ -166,6 +166,12 @@ pub struct SummarizationConfig {
     pub ollama_url: String,
     pub ollama_model: String,
     pub mistral_model: String,
+    /// Artemis/Catalia extension: override the built-in English SYSTEM_PROMPT
+    /// used across all LLM engines. None or empty → fall back to built-in prompt.
+    pub custom_prompt: Option<String>,
+    /// Artemis/Catalia extension: provide ANTHROPIC_API_KEY via config.toml
+    /// instead of env var. None or empty → fall back to env var.
+    pub api_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -644,6 +650,8 @@ impl Default for SummarizationConfig {
             ollama_url: "http://localhost:11434".into(),
             ollama_model: "llama3.2".into(),
             mistral_model: "mistral-large-latest".into(),
+            custom_prompt: None,
+            api_key: None,
         }
     }
 }
