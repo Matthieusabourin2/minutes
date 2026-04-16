@@ -2234,32 +2234,31 @@
       flex-shrink: 0;
     }
 
+    /* Artemis: bouton détail visible en permanence (pas seulement au
+       hover). Plus large pour être facilement cliquable même quand
+       l'assistant est ouvert et qu'on a le panneau étroit. */
     .meeting-chat-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: none;
-      background: transparent;
-      color: var(--text-tertiary);
-      font-size: 14px;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated, transparent);
+      color: var(--text-secondary, var(--text-tertiary));
+      font-size: 22px;
+      line-height: 1;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.15s ease, color 0.15s ease;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
       -webkit-app-region: no-drag;
       flex-shrink: 0;
-      opacity: 0;
-      transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
-    }
-
-    .meeting-item:hover .meeting-chat-btn {
-      opacity: 1;
     }
 
     .meeting-chat-btn:hover {
       background: var(--accent-tint);
       color: var(--accent);
+      border-color: var(--accent);
     }
 
     .detail-context {
@@ -6743,9 +6742,25 @@
       try {
         const detail = await invoke('cmd_get_meeting_detail', { path });
         renderDetailSections(detail);
+        // Artemis: réinitialiser le scroll en haut quand on bascule
+        // d'un RDV à un autre via "Source" ou "Ouvrir". Sinon on reste
+        // scrollé en bas (où étaient les boutons) et on a l'impression
+        // que rien n'a changé alors que le contenu a bien été rechargé.
+        const detailScrollEl = document.getElementById('detail-scroll');
+        if (detailScrollEl) detailScrollEl.scrollTop = 0;
       } catch (e) {
         console.error('Detail:', e);
-        await invoke('cmd_open_file', { path });
+        // Notice visible côté UI plutôt que fallback silencieux sur
+        // cmd_open_file (qui ouvrirait un éditeur externe sans
+        // signaler l'erreur).
+        const noticeIcon = document.getElementById('output-notice-icon');
+        const noticeTitle = document.getElementById('output-notice-title');
+        const noticeDetail = document.getElementById('output-notice-detail');
+        const notice = document.getElementById('output-notice');
+        if (noticeIcon) noticeIcon.textContent = '✕';
+        if (noticeTitle) noticeTitle.textContent = 'Impossible d\'ouvrir ce rendez-vous';
+        if (noticeDetail) noticeDetail.textContent = String(e);
+        if (notice) notice.classList.add('active');
       }
     }
 
@@ -6828,19 +6843,25 @@
           badge.className = 'meeting-badge' + typeClass;
           badge.textContent = m.content_type || 'meeting';
 
-          const chatBtn = document.createElement('button');
-          chatBtn.className = 'meeting-chat-btn';
-          chatBtn.setAttribute('aria-label', 'Discuss with Agent');
-          chatBtn.setAttribute('title', 'Discuss with Agent');
-          chatBtn.textContent = '\u279C';
-          chatBtn.addEventListener('click', async (e) => {
+          // Artemis: ce bouton ouvre TOUJOURS la popup détail du RDV
+          // (markdown, brouillons, suppression, etc.). Il a remplacé le
+          // bouton "Discuss with Agent" upstream qui faisait double
+          // emploi avec le clic sur le corps de la card. Quand
+          // l'assistant est ouvert, le clic sur le corps bascule le
+          // scope du chatbot ; ce bouton reste le seul moyen d'ouvrir
+          // la popup détail sans fermer l'assistant.
+          const detailBtn = document.createElement('button');
+          detailBtn.className = 'meeting-chat-btn';
+          detailBtn.setAttribute('aria-label', 'Voir les détails du rendez-vous');
+          detailBtn.setAttribute('title', 'Voir les détails (markdown, brouillons, suppression…)');
+          detailBtn.textContent = '\u22EF'; // ⋯ horizontal ellipsis
+          detailBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            await openRecall('meeting', m.path);
-            setRecallPhase('debrief', m.title || 'Meeting');
+            openMeetingDetail(m.path);
           });
 
           item.appendChild(info);
-          item.appendChild(chatBtn);
+          item.appendChild(detailBtn);
           item.appendChild(badge);
           meetingsScroll.appendChild(item);
         }
