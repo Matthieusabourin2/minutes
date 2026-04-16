@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add Note</title>
+  <title>Ajouter une note</title>
   <style>
     @font-face {
       font-family: 'Instrument Serif';
@@ -283,27 +283,27 @@
 <body>
   <div class="shell">
     <div class="header">
-      <div class="label">Quick capture</div>
-      <div class="title">Add a note</div>
-      <div class="subtitle">Append context to the current session without breaking flow.</div>
+      <div class="label">Capture rapide</div>
+      <div class="title">Ajouter une note</div>
+      <div class="subtitle">Ajoute du contexte à la session en cours sans rompre le flux.</div>
     </div>
     <div class="input-wrap">
       <div class="input-meta">
-        <span class="pill">Local only</span>
-        <span id="note-length">0 chars</span>
+        <span class="pill">Local uniquement</span>
+        <span id="note-length">0 car.</span>
       </div>
       <textarea
         id="note-input"
-        placeholder="What's happening right now..."
+        placeholder="Que se passe-t-il là maintenant…"
         autofocus
       ></textarea>
     </div>
     <div class="footer">
-      <span class="hint"><kbd>&#8984;Return</kbd> save <span style="opacity:.5">·</span> <kbd>Esc</kbd> close</span>
-      <button class="btn btn-primary" id="save-btn" disabled>Save Note</button>
+      <span class="hint"><kbd>&#8984;Return</kbd> sauver <span style="opacity:.5">·</span> <kbd>Esc</kbd> fermer</span>
+      <button class="btn btn-primary" id="save-btn" disabled>Sauver la note</button>
     </div>
   </div>
-  <div class="toast" id="toast">Note saved</div>
+  <div class="toast" id="toast">Note sauvegardée</div>
 
   <script>
     const { invoke } = window.__TAURI__.core;
@@ -316,7 +316,7 @@
 
     function updateState() {
       btn.disabled = !input.value.trim();
-      noteLength.textContent = `${input.value.trim().length} chars`;
+      noteLength.textContent = `${input.value.trim().length} car.`;
     }
 
     input.addEventListener('input', updateState);
@@ -333,7 +333,7 @@
 
         // Flash success
         toast.classList.remove('error');
-        toast.textContent = 'Note saved';
+        toast.textContent = 'Note sauvegardée';
         toast.classList.add('show');
         setTimeout(() => {
           toast.classList.remove('show');

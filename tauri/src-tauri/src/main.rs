@@ -128,7 +128,7 @@ fn show_note_window(app: &tauri::AppHandle) {
         return;
     }
     let _win = WebviewWindowBuilder::new(app, "note", WebviewUrl::App("note.html".into()))
-        .title("Add Note")
+        .title("Ajouter une note")
         .inner_size(420.0, 260.0)
         .resizable(false)
         .content_protected(Config::load().privacy.hide_from_screen_share)
@@ -192,9 +192,9 @@ pub fn update_tray_state_with_mode(app: &tauri::AppHandle, is_active: bool, is_l
             tray.set_icon_as_template(!is_active).ok();
         }
         let tooltip = if is_live {
-            "Minutes — Live Transcribing..."
+            "Minutes — Transcription en direct…"
         } else if is_active {
-            "Minutes — Recording..."
+            "Minutes — Enregistrement…"
         } else {
             "Minutes"
         };
@@ -387,7 +387,7 @@ fn show_meeting_prompt(app: &tauri::AppHandle, event: &minutes_core::calendar::C
 
     let url = format!("meeting-prompt.html?t={}", token);
     match WebviewWindowBuilder::new(app, "meeting-prompt", WebviewUrl::App(url.into()))
-        .title("Upcoming Meeting")
+        .title("Prochain rendez-vous")
         .inner_size(380.0, 240.0)
         .position(pos_x, pos_y)
         .resizable(false)
@@ -989,12 +989,12 @@ fn main() {
             }));
 
             // Tray menu
-            let open_item = MenuItem::with_id(app, "open", "Open Minutes", true, None::<&str>)?;
+            let open_item = MenuItem::with_id(app, "open", "Ouvrir Minutes", true, None::<&str>)?;
             let sep0 = MenuItem::with_id(app, "sep0", "──────────", false, None::<&str>)?;
             let record_item = MenuItem::with_id(
                 app,
                 "record",
-                "Start Recording",
+                "Démarrer l'enregistrement",
                 !initial_recording,
                 None::<&str>,
             )?;
@@ -1002,7 +1002,7 @@ fn main() {
             let quick_thought_item = MenuItem::with_id(
                 app,
                 "quick-thought",
-                "Quick Thought",
+                "Note vocale rapide",
                 !initial_recording,
                 None::<&str>,
             )?;
@@ -1010,37 +1010,37 @@ fn main() {
             let stop_item = MenuItem::with_id(
                 app,
                 "stop",
-                "Stop Recording",
+                "Arrêter l'enregistrement",
                 initial_recording,
                 None::<&str>,
             )?;
             let stop_item_ref = stop_item.clone();
             let sep = MenuItem::with_id(app, "sep1", "──────────", false, None::<&str>)?;
-            let note_item = MenuItem::with_id(app, "note", "Add Note...", true, None::<&str>)?;
+            let note_item = MenuItem::with_id(app, "note", "Ajouter une note…", true, None::<&str>)?;
             let list_item =
-                MenuItem::with_id(app, "list", "Open Meetings Folder", true, None::<&str>)?;
+                MenuItem::with_id(app, "list", "Ouvrir le dossier des RDV", true, None::<&str>)?;
             let paste_summary_item = MenuItem::with_id(
                 app,
                 "paste-summary",
-                "Copy Latest Summary",
+                "Copier le dernier résumé",
                 true,
                 None::<&str>,
             )?;
             let paste_transcript_item = MenuItem::with_id(
                 app,
                 "paste-transcript",
-                "Copy Latest Transcript",
+                "Copier la dernière transcription",
                 true,
                 None::<&str>,
             )?;
-            let assistant_item = MenuItem::with_id(app, "assistant", "Recall", true, None::<&str>)?;
+            let assistant_item = MenuItem::with_id(app, "assistant", "Assistant", true, None::<&str>)?;
             let screen_share_item = MenuItem::with_id(
                 app,
                 "screen-share-toggle",
                 if startup_config.privacy.hide_from_screen_share {
-                    "Hide from Screen Share ✓"
+                    "Masquer du partage d'écran ✓"
                 } else {
-                    "Hide from Screen Share"
+                    "Masquer du partage d'écran"
                 },
                 true,
                 None::<&str>,
@@ -1049,12 +1049,12 @@ fn main() {
             let check_update_item = MenuItem::with_id(
                 app,
                 "check-for-updates",
-                "Check for Updates",
+                "Rechercher des mises à jour",
                 true,
                 None::<&str>,
             )?;
             let sep2 = MenuItem::with_id(app, "sep2", "──────────", false, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit Minutes", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quitter Minutes", true, None::<&str>)?;
 
             let menu = Menu::new(app)?;
             menu.append_items(&[
@@ -1097,7 +1097,7 @@ fn main() {
                             if commands::recording_active(&recording) {
                                 return;
                             }
-                            rec_item.set_text("Starting...").ok();
+                            rec_item.set_text("Démarrage…").ok();
                             rec_item.set_enabled(false).ok();
                             quick_item.set_enabled(false).ok();
                             stp_item.set_enabled(true).ok();
@@ -1119,7 +1119,7 @@ fn main() {
                                     None,
                                     None,
                                 );
-                                ri.set_text("Start Recording").ok();
+                                ri.set_text("Démarrer l'enregistrement").ok();
                                 ri.set_enabled(true).ok();
                                 quick_item.set_enabled(true).ok();
                                 si.set_enabled(false).ok();
@@ -1131,7 +1131,7 @@ fn main() {
                                 return;
                             }
                             rec_item.set_enabled(false).ok();
-                            quick_item.set_text("Starting Quick Thought…").ok();
+                            quick_item.set_text("Démarrage note rapide…").ok();
                             quick_item.set_enabled(false).ok();
                             stp_item.set_enabled(true).ok();
                             let app_handle = app.clone();
@@ -1153,9 +1153,9 @@ fn main() {
                                     None,
                                     None,
                                 );
-                                ri.set_text("Start Recording").ok();
+                                ri.set_text("Démarrer l'enregistrement").ok();
                                 ri.set_enabled(true).ok();
-                                qi.set_text("Quick Thought").ok();
+                                qi.set_text("Note vocale rapide").ok();
                                 qi.set_enabled(true).ok();
                                 si.set_enabled(false).ok();
                                 update_tray_state(&app_done, false);
@@ -1163,9 +1163,9 @@ fn main() {
                         }
                         "stop" => {
                             if commands::request_stop(&recording, &stop).is_ok() {
-                                rec_item.set_text("Stopping...").ok();
+                                rec_item.set_text("Arrêt…").ok();
                                 rec_item.set_enabled(false).ok();
-                                quick_item.set_text("Quick Thought").ok();
+                                quick_item.set_text("Note vocale rapide").ok();
                                 quick_item.set_enabled(false).ok();
                                 stp_item.set_enabled(false).ok();
                                 let app_done = app.clone();
@@ -1176,9 +1176,9 @@ fn main() {
                                     if commands::wait_for_recording_shutdown(
                                         std::time::Duration::from_secs(120),
                                     ) {
-                                        ri.set_text("Start Recording").ok();
+                                        ri.set_text("Démarrer l'enregistrement").ok();
                                         ri.set_enabled(true).ok();
-                                        qi.set_text("Quick Thought").ok();
+                                        qi.set_text("Note vocale rapide").ok();
                                         qi.set_enabled(true).ok();
                                         si.set_enabled(false).ok();
                                         update_tray_state(&app_done, false);
@@ -1213,7 +1213,7 @@ fn main() {
                             if let Err(err) =
                                 commands::open_target(app, &meetings_dir.display().to_string())
                             {
-                                commands::show_user_notification(app, "Meetings", &err);
+                                commands::show_user_notification(app, "Rendez-vous", &err);
                             }
                         }
                         "paste-summary" | "paste-transcript" => {
@@ -1223,6 +1223,11 @@ fn main() {
                             } else {
                                 "transcript"
                             };
+                            let label_fr = if kind == "summary" {
+                                "Dernier résumé"
+                            } else {
+                                "Dernière transcription"
+                            };
                             match commands::paste_latest_artifact(
                                 &latest_output,
                                 kind,
@@ -1231,14 +1236,14 @@ fn main() {
                                 Ok(message) => {
                                     commands::show_user_notification(
                                         app,
-                                        &format!("Latest {}", kind),
+                                        label_fr,
                                         &message,
                                     );
                                 }
                                 Err(err) => {
                                     commands::show_user_notification(
                                         app,
-                                        &format!("Latest {}", kind),
+                                        label_fr,
                                         &err,
                                     );
                                 }
@@ -1258,11 +1263,11 @@ fn main() {
                             // Update menu label
                             if new_state {
                                 screen_share_item_ref
-                                    .set_text("Hide from Screen Share ✓")
+                                    .set_text("Masquer du partage d'écran ✓")
                                     .ok();
                             } else {
                                 screen_share_item_ref
-                                    .set_text("Hide from Screen Share")
+                                    .set_text("Masquer du partage d'écran")
                                     .ok();
                             }
 
@@ -1301,7 +1306,7 @@ fn main() {
                             if commands::recording_active(&recording) {
                                 return;
                             }
-                            rec_item.set_text("Starting...").ok();
+                            rec_item.set_text("Démarrage…").ok();
                             rec_item.set_enabled(false).ok();
                             quick_item.set_enabled(false).ok();
                             stp_item.set_enabled(true).ok();
@@ -1323,7 +1328,7 @@ fn main() {
                                     None,
                                     None,
                                 );
-                                ri.set_text("Start Recording").ok();
+                                ri.set_text("Démarrer l'enregistrement").ok();
                                 ri.set_enabled(true).ok();
                                 quick_item.set_enabled(true).ok();
                                 si.set_enabled(false).ok();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dictation</title>
+  <title>Dictée</title>
   <style>
     @font-face {
       font-family: 'Geist';
@@ -318,7 +318,7 @@
   <div class="pill" id="pill" role="status" aria-live="polite">
     <div class="status-row" id="status-row">
       <div class="spinner" id="indicator"></div>
-      <span class="label" id="label">Loading model...</span>
+      <span class="label" id="label">Chargement du modèle…</span>
       <div class="waveform" id="waveform" style="display:none">
         <div class="bar" style="height:4px"></div>
         <div class="bar" style="height:4px"></div>
@@ -497,7 +497,7 @@
       switch (state) {
         case 'loading':
           setIndicator('spinner');
-          label.textContent = 'Loading model\u2026';
+          label.textContent = 'Chargement du modèle\u2026';
           waveform.style.display = 'none';
           timer.style.display = 'none';
           showExpanded(false);
@@ -505,7 +505,7 @@
 
         case 'listening':
           setIndicator('dot-blink');
-          label.textContent = 'Listening\u2026';
+          label.textContent = 'Écoute\u2026';
           waveform.style.display = 'none';
           timer.style.display = 'none';
           showExpanded(false);
@@ -515,7 +515,7 @@
 
         case 'accumulating':
           setIndicator('dot-solid');
-          label.textContent = 'Dictating';
+          label.textContent = 'Dictée en cours';
           waveform.style.display = 'flex';
           timer.style.display = '';
           // Stay compact during dictation — text appears only on success
@@ -538,7 +538,7 @@
 
         case 'success':
           setIndicator('success');
-          label.textContent = 'Copied';
+          label.textContent = 'Copié';
           waveform.style.display = 'none';
           timer.style.display = 'none';
           showExpanded(true);
@@ -549,7 +549,7 @@
         case 'error':
           pill.classList.add('error');
           setIndicator('error');
-          label.textContent = 'Failed \u2014 audio saved';
+          label.textContent = 'Échec \u2014 audio sauvegardé';
           waveform.style.display = 'none';
           timer.style.display = 'none';
           showExpanded(false);
