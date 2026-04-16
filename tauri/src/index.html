@@ -4862,25 +4862,25 @@
 
       const title = document.createElement('div');
       title.className = 'ambient-context-title';
-      title.textContent = 'Ambient Context';
+      title.textContent = 'Contexte ambiant';
 
       const summary = document.createElement('div');
       summary.className = 'ambient-context-summary';
-      summary.textContent = proactiveContextBundle.summary || 'Recent context is available.';
+      summary.textContent = proactiveContextBundle.summary || 'Du contexte récent est disponible.';
 
       const actions = document.createElement('div');
       actions.className = 'ambient-context-actions';
 
       const recallBtn = document.createElement('button');
       recallBtn.className = 'btn btn-secondary btn-sm';
-      recallBtn.textContent = 'Open Recall';
+      recallBtn.textContent = 'Ouvrir l\'assistant';
       recallBtn.addEventListener('click', () => {
         openRecall('assistant');
       });
 
       const weeklyBtn = document.createElement('button');
       weeklyBtn.className = 'btn btn-secondary btn-sm';
-      weeklyBtn.textContent = 'Weekly';
+      weeklyBtn.textContent = 'Hebdo';
       weeklyBtn.addEventListener('click', () => {
         openWeeklyPhase();
       });
@@ -4910,7 +4910,7 @@
 
       if (activation.hasModel || milestones.modelReadyAt) {
         modelStep?.classList.add('done');
-        if (modelStatus) modelStatus.textContent = 'Done';
+        if (modelStatus) modelStatus.textContent = 'Terminé';
         modelBody?.classList.add('ui-hidden');
         artifactStep?.classList.remove('disabled');
       }
@@ -4923,7 +4923,7 @@
         artifactStep?.classList.add('done');
         watchStep?.classList.remove('disabled');
         watchStep?.classList.add('done');
-        if (watchStatus) watchStatus.textContent = 'Saved';
+        if (watchStatus) watchStatus.textContent = 'Sauvegardé';
       } else if (activation.phase === 'processing-first-artifact' || activation.phase === 'recording-first-artifact') {
         watchStep?.classList.remove('disabled');
         if (watchStatus) {
@@ -4944,7 +4944,7 @@
     function describeParakeetStatus(status) {
       if (!status) {
         return {
-          summary: 'Parakeet status unavailable.',
+          summary: 'Statut Parakeet indisponible.',
           detail: 'Minutes could not determine whether the selected Parakeet backend is usable yet.',
         };
       }
@@ -4960,7 +4960,7 @@
       }
 
       return {
-        summary: 'Parakeet backend needs setup.',
+        summary: 'Le backend Parakeet doit être configuré.',
         detail: (status.issues && status.issues.length)
           ? status.issues.join(' • ')
           : `Run ${status.setupCommand} after installing the local Parakeet backend assets.`,
@@ -5032,7 +5032,7 @@
     }
 
     function currentProcessingTitle(mode) {
-      return mode === 'quick-thought' ? 'Processing quick thought' : 'Processing recording';
+      return mode === 'quick-thought' ? 'Traitement de la note rapide' : 'Traitement de l\'enregistrement';
     }
 
     function formatIsoElapsed(isoString) {
@@ -5098,7 +5098,7 @@
           job.stage
           || (job.state === 'transcript-only'
             ? 'Transcript is ready. The richer summary is still running.'
-            : 'Waiting for background processing.');
+            : 'En attente de traitement en arrière-plan.');
 
         const meta = document.createElement('div');
         meta.className = 'processing-job-meta';
@@ -5166,7 +5166,7 @@
       if (!jobsHistory.length) {
         const empty = document.createElement('div');
         empty.className = 'recovery-empty';
-        empty.textContent = 'No processing jobs right now.';
+        empty.textContent = 'Aucune tâche en cours pour le moment.';
         jobsScroll.appendChild(empty);
         return;
       }
@@ -5212,8 +5212,8 @@
               : job.state === 'needs-review'
                 ? 'Transcript needs review. Raw capture was preserved for retry.'
                 : job.state === 'transcript-only'
-                  ? 'Transcript is ready while enrichment continues.'
-                  : 'Queued for background processing.');
+                  ? 'Transcription prête, enrichissement en cours.'
+                  : 'En file d\'attente de traitement.');
 
           const path = document.createElement('div');
           path.className = 'recovery-item-path';
@@ -5342,7 +5342,7 @@
           }
           if (callHealth) {
             statusBits.push(callHealth.mic_live ? 'Mic live' : 'Mic missing');
-            statusBits.push(callHealth.call_audio_live ? 'Call audio live' : 'Call audio missing');
+            statusBits.push(callHealth.call_audio_live ? 'Audio d\'appel en direct' : 'Audio d\'appel absent');
           }
           recordingLabel.textContent = stopRequested
             ? 'Finishing recording…'
@@ -5352,7 +5352,7 @@
           if (callHealth) {
             recordingSourceHealth.classList.add('active');
             setCallHealthChip(recordingHealthMic, callHealth.mic_live ? 'Mic live' : 'Mic missing', callHealth.mic_live);
-            setCallHealthChip(recordingHealthAudio, callHealth.call_audio_live ? 'Call audio live' : 'Call audio missing', callHealth.call_audio_live);
+            setCallHealthChip(recordingHealthAudio, callHealth.call_audio_live ? 'Audio d\'appel en direct' : 'Audio d\'appel absent', callHealth.call_audio_live);
           } else {
             recordingSourceHealth.classList.remove('active');
           }
@@ -5441,9 +5441,9 @@
             document.getElementById('btn-stop').disabled = false;
             statusPill.className = 'status-pill';
             statusPill.textContent = 'idle';
-            recordingLabel.textContent = 'Recording';
+            recordingLabel.textContent = 'Enregistrement';
             recordingSourceHealth.classList.remove('active');
-            processingTitle.textContent = 'Processing recording';
+            processingTitle.textContent = 'Traitement de l\'enregistrement';
             recordingBar.classList.remove('active');
             processingBar.classList.remove('active');
             processingSummary.textContent = '';
@@ -5553,7 +5553,7 @@
         quickThoughtButton.title = tooltip;
       } else {
         recordButton.title = '';
-        liveButton.title = 'Start live transcription — ask your agent in Recall for coaching';
+        liveButton.title = 'Démarrer la transcription en direct — demande un coaching à ton assistant';
         quickThoughtButton.title = '';
       }
     }
@@ -5601,7 +5601,7 @@
         console.error('Set hotkey:', e);
         hotkeyEnabled = false;
         localStorage.setItem('minutes.globalHotkeyEnabled', 'false');
-        hotkeyToggle.textContent = 'Off';
+        hotkeyToggle.textContent = 'Désactivé';
         hotkeyToggle.classList.remove('btn-primary');
         hotkeyToggle.classList.add('btn-secondary');
         setHotkeyStatus(String(e), true);
@@ -5620,7 +5620,7 @@
         await syncHotkey(desiredEnabled, hotkeyShortcut);
       } catch (e) {
         console.error('Load hotkey settings:', e);
-        setHotkeyStatus('Global shortcut is unavailable right now.', true);
+        setHotkeyStatus('Le raccourci global est indisponible.', true);
       }
     }
 
@@ -5672,7 +5672,7 @@
         if (item.optional) {
           const optional = document.createElement('div');
           optional.className = 'readiness-optional';
-          optional.textContent = 'Optional';
+          optional.textContent = 'Optionnel';
           card.appendChild(optional);
         }
 
@@ -5697,7 +5697,7 @@
       if (!recoveryItems.length) {
         const empty = document.createElement('div');
         empty.className = 'recovery-empty';
-        empty.textContent = 'No recovery items right now.';
+        empty.textContent = 'Aucun élément à récupérer pour le moment.';
         recoveryScroll.appendChild(empty);
         return;
       }
@@ -5754,7 +5754,7 @@
 
         const open = document.createElement('button');
         open.className = 'btn btn-secondary btn-sm';
-        open.textContent = 'Open';
+        open.textContent = 'Ouvrir';
         open.addEventListener('click', async () => {
           try {
             await invoke('cmd_open_file', { path: item.path });
@@ -5797,7 +5797,7 @@
         devicePicker.replaceChildren();
         const defaultOpt = document.createElement('option');
         defaultOpt.value = '';
-        defaultOpt.textContent = 'System Default';
+        defaultOpt.textContent = 'Micro par défaut';
         devicePicker.appendChild(defaultOpt);
         for (const fullName of result.devices) {
           const opt = document.createElement('option');
@@ -5872,10 +5872,10 @@
         document.getElementById('btn-stop').disabled = true;
         statusPill.className = 'status-pill processing';
         statusPill.textContent = 'stopping';
-        recordingLabel.textContent = 'Finishing recording…';
+        recordingLabel.textContent = 'Finalisation de l\'enregistrement…';
         processingBar.classList.add('active');
-        processingTitle.textContent = 'Stopping recording';
-        processingStage.textContent = 'Saving audio and wrapping up…';
+        processingTitle.textContent = 'Arrêt de l\'enregistrement';
+        processingStage.textContent = 'Sauvegarde audio et finalisation…';
         setFooterCaptureMode(false);
         startFastPoll();
         await invoke('cmd_stop_recording');
@@ -5898,8 +5898,8 @@
         const noticeIcon = document.getElementById('output-notice-icon');
         const notice = document.getElementById('output-notice');
         if (noticeIcon) noticeIcon.textContent = '\u{1F399}';
-        if (noticeTitle) noticeTitle.textContent = 'Live Transcript';
-        if (noticeDetail) noticeDetail.textContent = 'Transcribes your meeting in real time. Ask your agent in Recall for coaching during the call.';
+        if (noticeTitle) noticeTitle.textContent = 'Transcription en direct';
+        if (noticeDetail) noticeDetail.textContent = 'Transcrit ton rendez-vous en temps réel. Demande un coaching à ton assistant pendant l\'appel.';
         if (notice) notice.classList.add('active');
         // Auto-dismiss after 4 seconds, then proceed with start
         await new Promise(r => setTimeout(r, 3000));
@@ -5908,7 +5908,7 @@
 
       const origText = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Starting...';
+      btn.textContent = 'Démarrage…';
       try {
         await invoke('cmd_start_live_transcript');
       } catch (e) {
@@ -5919,7 +5919,7 @@
         const noticeDetail = document.getElementById('output-notice-detail');
         const notice = document.getElementById('output-notice');
         if (noticeIcon) noticeIcon.textContent = '✕';
-        if (noticeTitle) noticeTitle.textContent = 'Live transcript failed';
+        if (noticeTitle) noticeTitle.textContent = 'Échec de la transcription en direct';
         if (noticeDetail) noticeDetail.textContent = String(e);
         if (notice) notice.classList.add('active');
       } finally {
@@ -6201,7 +6201,7 @@
 
         const label = document.createElement('div');
         label.className = 'detail-context-label';
-        label.textContent = 'Context';
+        label.textContent = 'Contexte';
 
         const body = document.createElement('div');
         body.className = 'detail-context-body';
@@ -6219,7 +6219,7 @@
 
         const label = document.createElement('div');
         label.className = 'detail-speakers-label';
-        label.textContent = 'Speakers';
+        label.textContent = 'Locuteurs';
         speakerCard.appendChild(label);
 
         for (const attr of detail.speaker_map) {
@@ -6245,13 +6245,13 @@
           if (attr.confidence !== 'high') {
             const btn = document.createElement('button');
             btn.className = 'speaker-confirm-btn';
-            btn.textContent = 'Confirm';
+            btn.textContent = 'Confirmer';
             btn.onclick = async () => {
               const newName = prompt(`Confirm speaker name for ${attr.speaker_label}:`, attr.name);
               if (newName) {
                 btn.disabled = true;
                 const previousLabel = btn.textContent;
-                btn.textContent = 'Saving...';
+                btn.textContent = 'Sauvegarde…';
                 try {
                   const result = await invoke('cmd_confirm_speaker', {
                     meetingPath: detail.path,
@@ -6288,7 +6288,7 @@
 
         const aiLabel = document.createElement('div');
         aiLabel.className = 'detail-context-label';
-        aiLabel.textContent = 'Action Items';
+        aiLabel.textContent = 'Actions';
         aiCard.appendChild(aiLabel);
 
         const aiList = document.createElement('div');
@@ -6321,7 +6321,7 @@
 
         const decLabel = document.createElement('div');
         decLabel.className = 'detail-context-label';
-        decLabel.textContent = 'Decisions';
+        decLabel.textContent = 'Décisions';
         decCard.appendChild(decLabel);
 
         const decList = document.createElement('div');
@@ -6345,7 +6345,7 @@
         peopleCard.className = 'detail-context';
         const peopleLabel = document.createElement('div');
         peopleLabel.className = 'detail-context-label';
-        peopleLabel.textContent = 'Related People';
+        peopleLabel.textContent = 'Personnes liées';
         const peopleRow = document.createElement('div');
         peopleRow.className = 'detail-chip-row';
         for (const person of detail.related_people) {
@@ -6368,7 +6368,7 @@
         topicsCard.className = 'detail-context';
         const topicsLabel = document.createElement('div');
         topicsLabel.className = 'detail-context-label';
-        topicsLabel.textContent = 'Related Topics';
+        topicsLabel.textContent = 'Sujets liés';
         const topicsRow = document.createElement('div');
         topicsRow.className = 'detail-chip-row';
         for (const topic of detail.related_topics) {
@@ -6391,7 +6391,7 @@
         commitmentsCard.className = 'detail-context';
         const commitmentsLabel = document.createElement('div');
         commitmentsLabel.className = 'detail-context-label';
-        commitmentsLabel.textContent = 'Open Commitments';
+        commitmentsLabel.textContent = 'Engagements ouverts';
         const commitmentsList = document.createElement('div');
         commitmentsList.className = 'detail-action-list';
         for (const item of detail.related_commitments) {
@@ -6422,7 +6422,7 @@
         meetingsCard.className = 'detail-context';
         const meetingsLabel = document.createElement('div');
         meetingsLabel.className = 'detail-context-label';
-        meetingsLabel.textContent = 'Nearby Meetings';
+        meetingsLabel.textContent = 'Rendez-vous proches';
         const meetingsList = document.createElement('div');
         meetingsList.className = 'detail-action-list';
         for (const meeting of detail.related_meetings) {
@@ -6435,7 +6435,7 @@
 
           const openBtn = document.createElement('button');
           openBtn.className = 'btn btn-secondary btn-sm';
-          openBtn.textContent = 'Open';
+          openBtn.textContent = 'Ouvrir';
           openBtn.addEventListener('click', () => openMeetingDetail(meeting.path));
           row.appendChild(openBtn);
 
@@ -6451,7 +6451,7 @@
         artifactsCard.className = 'detail-context';
         const artifactsLabel = document.createElement('div');
         artifactsLabel.className = 'detail-context-label';
-        artifactsLabel.textContent = 'Adjacent Artifacts';
+        artifactsLabel.textContent = 'Documents associés';
         const artifactsList = document.createElement('div');
         artifactsList.className = 'detail-action-list';
         for (const artifact of detail.adjacent_artifacts) {
@@ -6465,7 +6465,7 @@
 
           const openBtn = document.createElement('button');
           openBtn.className = 'btn btn-secondary btn-sm';
-          openBtn.textContent = 'Open';
+          openBtn.textContent = 'Ouvrir';
           openBtn.addEventListener('click', async () => {
             try {
               const access = await invoke('cmd_get_text_file_access', { path: artifact.path });
@@ -6490,7 +6490,7 @@
       if (!detail.sections || detail.sections.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'detail-empty';
-        empty.textContent = 'No transcript content available for this recording.';
+        empty.textContent = 'Aucune transcription disponible pour cet enregistrement.';
         detailScroll.appendChild(empty);
       } else {
         for (const section of detail.sections) {
@@ -6516,10 +6516,10 @@
       bottomCta.className = 'detail-bottom-cta';
       const ctaText = document.createElement('div');
       ctaText.className = 'detail-bottom-cta-text';
-      ctaText.textContent = 'Have questions about this ' + (detail.content_type || 'meeting') + '?';
+      ctaText.textContent = 'Des questions sur ce ' + (detail.content_type === 'meeting' ? 'rendez-vous' : (detail.content_type || 'rendez-vous')) + ' ?';
       const ctaBtn = document.createElement('button');
       ctaBtn.className = 'btn btn-primary btn-sm';
-      ctaBtn.textContent = 'Discuss with Agent';
+      ctaBtn.textContent = 'Échanger avec l\'assistant';
       ctaBtn.addEventListener('click', () => {
         document.getElementById('btn-discuss-ai').click();
       });
@@ -6727,7 +6727,7 @@
             text.textContent = result;
 
             root.querySelector('#step-model').classList.add('done');
-            root.querySelector('#step-model-status').textContent = 'Done';
+            root.querySelector('#step-model-status').textContent = 'Terminé';
             root.querySelector('#step-model-body').classList.add('ui-hidden');
 
             currentSetup = { ...currentSetup, hasModel: true, needsSetup: false };
@@ -6946,7 +6946,7 @@
         const isDownloaded = dl.includes(selectedModel);
         document.getElementById('settings-model-status').textContent = isDownloaded
           ? 'Downloaded: ' + dl.join(', ')
-          : dl.length ? 'Downloaded: ' + dl.join(', ') + '  •  "' + selectedModel + '" not yet downloaded' : 'No models downloaded yet.';
+          : dl.length ? 'Téléchargé : ' + dl.join(', ') + '  •  « ' + selectedModel + ' » pas encore téléchargé' : 'Aucun modèle téléchargé.';
         document.getElementById('btn-download-model').classList.toggle('is-hidden', isDownloaded);
         document.getElementById('settings-whisper-language').value = s.transcription.language || '';
         setSettingsToggle('settings-diarization', s.diarization.engine !== 'none'); // "auto" shows as On
@@ -7086,7 +7086,7 @@
         if (v.enabled && v.status === 'healthy') {
           detail.textContent = v.detail;
           detail.style.color = 'var(--green)';
-          setupBtn.textContent = 'Reconfigure';
+          setupBtn.textContent = 'Reconfigurer';
           setupBtn.classList.remove('btn-primary');
           setupBtn.classList.add('btn-secondary');
           unlinkRow.classList.remove('is-hidden');
@@ -7111,7 +7111,7 @@
     document.getElementById('btn-vault-setup').addEventListener('click', async () => {
       try {
         const { open } = window.__TAURI__.dialog || await import('@tauri-apps/plugin-dialog');
-        const selected = await open({ directory: true, title: 'Select your vault folder' });
+        const selected = await open({ directory: true, title: 'Sélectionne le dossier du vault' });
         if (!selected) return;
 
         const btn = document.getElementById('btn-vault-setup');
@@ -7145,7 +7145,7 @@
       const el = document.getElementById('settings-summarization-status');
       if (s.summarization.engine === 'none') el.textContent = '';
       else if (s.summarization.engine === 'agent') el.textContent = 'Using: ' + (s.summarization.agent_command || 'claude') + ' — no API key needed, uses your existing subscription';
-      else if (s.summarization.engine === 'ollama') el.textContent = s.summarization.ollama_reachable ? 'Ollama reachable (' + s.summarization.ollama_model + ')' : 'Ollama not reachable at ' + s.summarization.ollama_url;
+      else if (s.summarization.engine === 'ollama') el.textContent = s.summarization.ollama_reachable ? 'Ollama accessible (' + s.summarization.ollama_model + ')' : 'Ollama inaccessible à ' + s.summarization.ollama_url;
       else if (s.summarization.engine === 'claude') el.textContent = s.summarization.anthropic_key_set ? 'API key set' : 'ANTHROPIC_API_KEY not found in environment';
       else if (s.summarization.engine === 'openai') el.textContent = s.summarization.openai_key_set ? 'API key set' : 'OPENAI_API_KEY not found in environment';
     }
@@ -7155,7 +7155,7 @@
         const f = (b) => b > 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : b > 1048576 ? (b / 1048576).toFixed(0) + ' MB' : (b / 1024).toFixed(0) + ' KB';
         document.getElementById('settings-storage-info').textContent =
           'Meetings: ' + f(st.meetings.bytes) + ' (' + st.meetings.count + ' files)  •  Memos: ' + f(st.memos.bytes) + ' (' + st.memos.count + ')  •  Models: ' + f(st.models.bytes) + '  •  Screenshots: ' + f(st.screens.bytes) + '  •  Total: ' + f(st.total_bytes);
-      } catch (e) { document.getElementById('settings-storage-info').textContent = 'Could not load.'; }
+      } catch (e) { document.getElementById('settings-storage-info').textContent = 'Impossible de charger.'; }
     }
     // Settings General handlers — delegate to existing app logic
     document.getElementById('settings-notifications').addEventListener('click', async () => {
@@ -7216,7 +7216,7 @@
       const isDownloaded = dl.includes(e.target.value);
       document.getElementById('settings-model-status').textContent = isDownloaded
         ? 'Downloaded: ' + dl.join(', ')
-        : dl.length ? 'Downloaded: ' + dl.join(', ') + '  •  "' + e.target.value + '" not yet downloaded' : 'No models downloaded yet.';
+        : dl.length ? 'Téléchargé : ' + dl.join(', ') + '  •  « ' + e.target.value + ' » pas encore téléchargé' : 'Aucun modèle téléchargé.';
       document.getElementById('btn-download-model').classList.toggle('is-hidden', isDownloaded);
     });
     document.getElementById('btn-download-model').addEventListener('click', async () => {
@@ -7263,7 +7263,7 @@
     document.getElementById('settings-agent-command').addEventListener('change', async (e) => {
       await invoke('cmd_set_setting', { section: 'summarization', key: 'agent_command', value: e.target.value });
       const agents = await invoke('cmd_list_agents');
-      document.getElementById('settings-agent-command-status').textContent = agents.find(a => a.name === e.target.value) ? 'Installed' : 'Not found on this machine';
+      document.getElementById('settings-agent-command-status').textContent = agents.find(a => a.name === e.target.value) ? 'Installé' : 'Introuvable sur cette machine';
     });
     document.getElementById('settings-screen-context').addEventListener('click', async () => {
       const s = await invoke('cmd_get_settings');
@@ -7547,7 +7547,7 @@
       btn.addEventListener('click', async () => {
         if (recording) return;
         recording = true;
-        btn.textContent = 'Press your shortcut...';
+        btn.textContent = 'Appuie sur ton raccourci…';
         btn.style.borderColor = 'var(--accent)';
 
         // Temporarily unregister the slot's shortcut so key events reach the webview
@@ -7909,7 +7909,7 @@
           hotkeyRecordBtn.style.opacity = '';
         }
         statusEl.style.color = 'var(--red)';
-        statusEl.textContent = status.message || 'Could not start the native dictation hotkey.';
+        statusEl.textContent = status.message || 'Impossible de démarrer le raccourci natif de dictée.';
       } else if (status.state === 'active') {
         toggleBtn.disabled = false;
         if (hotkeyRecordBtn) {
@@ -7942,7 +7942,7 @@
     if (hotkeyRecordBtn) hotkeyRecordBtn.addEventListener('click', () => {
       if (isRecordingHotkey) return;
       isRecordingHotkey = true;
-      hotkeyRecordBtn.textContent = 'Press any key...';
+      hotkeyRecordBtn.textContent = 'Appuie sur une touche…';
       hotkeyRecordBtn.style.borderColor = 'var(--accent)';
       hotkeyRecordBtn.style.color = 'var(--accent)';
 
@@ -8214,10 +8214,10 @@
     async function openWeeklyPhase() {
       await expandRecallPanel();
       setRecallPhase('weekly', 'Last 7 days');
-      recallWeeklyContent.textContent = 'Loading weekly summary…';
+      recallWeeklyContent.textContent = 'Chargement du résumé hebdomadaire…';
       try {
         const summary = await invoke('cmd_weekly_summary');
-        recallWeeklyContent.textContent = summary.markdown || 'No weekly summary available.';
+        recallWeeklyContent.textContent = summary.markdown || 'Aucun résumé hebdomadaire disponible.';
       } catch (e) {
         console.error('Weekly summary:', e);
         recallWeeklyContent.textContent = `Could not load weekly summary: ${e}`;
@@ -8435,7 +8435,7 @@
           }
         } else {
           console.error('Recall spawn:', e);
-          recallLoading.querySelector('span').textContent = 'Could not start: ' + msg;
+          recallLoading.querySelector('span').textContent = 'Impossible de démarrer : ' + msg;
         }
       }
     }
@@ -8476,7 +8476,7 @@
       callSubtitle.textContent = 'Prêt à enregistrer cet appel';
       callDetail.textContent = 'Minutes will stay ready while this call is active until you start recording or dismiss this session.';
       setCallHealthChip(callHealthMic, 'Mic waiting', false);
-      setCallHealthChip(callHealthAudio, 'Call audio waiting', false);
+      setCallHealthChip(callHealthAudio, 'Audio d\'appel en attente', false);
       callBanner.classList.add('active');
 
       // Only steal focus on first detection, not periodic reminders
@@ -8590,18 +8590,18 @@
         case 'installing':
           title = 'Installing update';
           sub = `Installing v${updateState.version || 'latest'} and preparing restart.`;
-          meta = 'Cancel is disabled once install starts.';
+          meta = 'Annulation impossible une fois l\'installation démarrée.';
           showMeta = true;
           showProgress = true;
           progressRatio = 1;
           break;
         case 'ready':
-          title = 'Ready to restart';
+          title = 'Prêt à redémarrer';
           sub = `v${updateState.version || 'latest'} is installed. Restarting automatically…`;
           break;
         case 'error':
           title = '✗ Update failed';
-          sub = 'The update did not finish cleanly.';
+          sub = 'La mise à jour n\'a pas pu terminer proprement.';
           break;
         default:
           title = updateState.version ? `Update available (v${updateState.version})` : 'Update available';
@@ -8860,7 +8860,7 @@
       const noticeDetail = document.getElementById('output-notice-detail');
       const notice = document.getElementById('output-notice');
       if (noticeIcon) noticeIcon.textContent = '✕';
-      if (noticeTitle) noticeTitle.textContent = 'Live transcript stopped unexpectedly';
+      if (noticeTitle) noticeTitle.textContent = 'Transcription en direct arrêtée de façon inattendue';
       if (noticeDetail) noticeDetail.textContent = errMsg;
       if (notice) notice.classList.add('active');
     });
@@ -9119,7 +9119,7 @@
             );
           } catch (e) {
             console.error('Open recent artifact:', e);
-            setMdViewerStatus('Could not reopen artifact', 'warning');
+            setMdViewerStatus('Impossible de rouvrir le document', 'warning');
           }
         });
 

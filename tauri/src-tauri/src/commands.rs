@@ -3232,7 +3232,7 @@ pub fn start_recording(
         Ok(preflight) => preflight,
         Err(error) => {
             eprintln!("Recording preflight failed: {}", error);
-            show_user_notification(&app_handle, "Recording blocked", &error);
+            show_user_notification(&app_handle, "Enregistrement bloqué", &error);
             starting.store(false, Ordering::Relaxed);
             recording.store(false, Ordering::Relaxed);
             reset_hotkey_capture_state(
@@ -3250,7 +3250,7 @@ pub fn start_recording(
     if let Some(reason) = &preflight.blocking_reason {
         if !(preflight.intent == RecordingIntent::Call && native_call_capture_available) {
             eprintln!("Recording preflight blocked: {}", reason);
-            show_user_notification(&app_handle, "Recording blocked", reason);
+            show_user_notification(&app_handle, "Enregistrement bloqué", reason);
             starting.store(false, Ordering::Relaxed);
             recording.store(false, Ordering::Relaxed);
             reset_hotkey_capture_state(
@@ -3814,7 +3814,7 @@ pub fn handle_dictation_shortcut_event(
             }
         }))
         .ok();
-        show_user_notification(app, "Dictation", &error);
+        show_user_notification(app, "Dictée", &error);
     } else {
         minutes_core::logging::append_log(&serde_json::json!({
             "ts": chrono::Local::now().to_rfc3339(),
@@ -7852,7 +7852,7 @@ pub fn start_dictation_hotkey_with_keycode(
                     if let Err(error) =
                         start_dictation_session(&app_for_hold, Some(HotkeyCaptureStyle::Hold))
                     {
-                        show_user_notification(&app_for_hold, "Dictation", &error);
+                        show_user_notification(&app_for_hold, "Dictée", &error);
                     }
                 });
             }
@@ -7957,7 +7957,7 @@ pub fn start_dictation_hotkey_with_keycode(
                 if let Err(error) =
                     start_dictation_session(&app_for_events, Some(HotkeyCaptureStyle::Locked))
                 {
-                    show_user_notification(&app_for_events, "Dictation", &error);
+                    show_user_notification(&app_for_events, "Dictée", &error);
                 }
             }
         },
