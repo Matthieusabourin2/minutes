@@ -2047,20 +2047,53 @@ RÈGLES IMPORTANTES :
 
 "#;
 
-/// Build the system prompt by appending the meeting artifact to the template.
-fn build_chat_system_prompt(meeting_content: &str) -> String {
-    let mut out = String::with_capacity(CHAT_SYSTEM_PROMPT_TEMPLATE.len() + meeting_content.len());
-    out.push_str(CHAT_SYSTEM_PROMPT_TEMPLATE);
-    out.push_str(meeting_content);
-    out
+/// Mode "général" : pas de meeting scopé. L'assistant reste cadré métier
+/// Artemis Paysages mais peut parler de stratégie commerciale globale,
+/// de l'activité de la semaine, des relances à faire, des techniques de
+/// vente paysagère, sans être verrouillé à un seul RDV.
+const CHAT_SYSTEM_PROMPT_GENERAL: &str = r#"Tu es l'assistant des commerciaux d'Artemis Paysages, une entreprise d'aménagement extérieur spécialisée en maçonnerie paysagère, terrasses, piscines, cours, portails et plantations.
+
+Tu n'es PAS scopé à un rendez-vous précis ici — tu peux discuter de la stratégie commerciale globale, de l'activité de la semaine, des techniques de vente, de la qualification des prospects, des modèles ProcessCom, des bonnes pratiques de relance, etc.
+
+Tu peux aider à :
+- Faire le point sur la semaine ou le mois (volume de RDV, taux de transformation)
+- Suggérer comment prioriser les relances en fonction de la maturité des leads
+- Donner des conseils sur les techniques de vente adaptées à un profil ProcessCom
+- Conseiller sur la rédaction d'e-mails commerciaux génériques
+- Préparer une trame de qualification pour un type de prospect
+- Synthétiser des tendances observées sur plusieurs RDV
+- Répondre à des questions sur les prestations Artemis (terrasses, piscines, etc.)
+
+RÈGLES IMPORTANTES :
+1. Réponds toujours en français, de façon concise et actionnable.
+2. Reste cadré sur le métier commercial d'Artemis Paysages. Si on te demande la météo, une recette de cuisine, ou un sujet vraiment hors-métier, recentre poliment.
+3. Si on te demande des chiffres précis sur un prospect spécifique, indique qu'il faut ouvrir le compte-rendu de ce RDV pour avoir le contexte complet (l'utilisateur peut cliquer dessus dans la liste à gauche pour basculer en mode "scopé").
+4. Préserve le tutoiement si le commercial t'en utilise, sinon vouvoiement.
+5. N'invente pas de données chiffrées sur l'activité — si l'utilisateur veut un point précis, propose-lui de cliquer "Hebdo" dans l'Aide mémoire pour générer un résumé factuel."#;
+
+/// Build the system prompt. If `meeting_content` is `Some`, the chatbot
+/// is scoped to that single meeting. If `None`, the general Artemis-wide
+/// prompt is used (the user is asking about strategy / weekly review /
+/// general sales advice).
+fn build_chat_system_prompt(meeting_content: Option<&str>) -> String {
+    match meeting_content {
+        Some(content) => {
+            let mut out =
+                String::with_capacity(CHAT_SYSTEM_PROMPT_TEMPLATE.len() + content.len());
+            out.push_str(CHAT_SYSTEM_PROMPT_TEMPLATE);
+            out.push_str(content);
+            out
+        }
+        None => CHAT_SYSTEM_PROMPT_GENERAL.to_string(),
+    }
 }
 
-/// Chat with Claude about a single meeting artifact. Uses the same
-/// `resolve_anthropic_key` resolution as summarization. Returns the
-/// assistant's reply text.
+/// Chat with Claude. If `meeting_content` is provided, the assistant is
+/// scoped to that single meeting (refuses off-topic). If `None`, runs in
+/// general Artemis mode (sales strategy, weekly review, generic Q&A).
 pub fn chat_about_meeting(
     config: &Config,
-    meeting_content: &str,
+    meeting_content: Option<&str>,
     messages: &[ChatMessage],
 ) -> Result<String, Box<dyn std::error::Error>> {
     if messages.is_empty() {

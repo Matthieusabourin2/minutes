@@ -1216,8 +1216,10 @@ fn build_weekly_summary_markdown(
     stale_commitments: &str,
     open_actions_block: &str,
 ) -> String {
+    // Artemis: tout en français + on retire le "Monday Brief" upstream
+    // (3 bullets statiques en anglais sans valeur ajoutée pour un commercial).
     format!(
-        "# Weekly Summary\n\n## Volume\n\n- {meetings_count} meeting or memo artifact(s) in the last 7 days.\n\n## Recent Meetings\n\n{recent_titles}\n\n## Decision Arcs\n\n{decision_conflicts}\n\n## Stale Commitments\n\n{stale_commitments}\n\n## Open Actions\n\n{open_actions_block}\n\n## Monday Brief\n\n- Confirm the highest-risk open commitment.\n- Review the most important decision conflict before the next meeting.\n- Turn the most important meeting into a durable artifact if it is still only in transcript form.\n"
+        "# Résumé hebdomadaire — 7 derniers jours\n\n## Volume\n\n- {meetings_count} rendez-vous ou mémo enregistré(s) cette semaine.\n\n## Rendez-vous récents\n\n{recent_titles}\n\n## Décisions à clarifier\n\n{decision_conflicts}\n\n## Engagements en attente\n\n{stale_commitments}\n\n## Actions à faire\n\n{open_actions_block}\n"
     )
 }
 
@@ -1228,7 +1230,7 @@ fn build_proactive_context_markdown(
     losing_touch: &[String],
 ) -> String {
     let meetings_block = if recent_meetings.is_empty() {
-        "- No recent meetings.".to_string()
+        "- Aucun rendez-vous récent.".to_string()
     } else {
         recent_meetings
             .iter()
@@ -1237,7 +1239,7 @@ fn build_proactive_context_markdown(
             .join("\n")
     };
     let memos_block = if recent_memos.is_empty() {
-        "- No recent memos.".to_string()
+        "- Aucun mémo récent.".to_string()
     } else {
         recent_memos
             .iter()
@@ -1246,7 +1248,7 @@ fn build_proactive_context_markdown(
             .join("\n")
     };
     let stale_block = if stale_commitments.is_empty() {
-        "- No stale commitments.".to_string()
+        "- Aucun engagement en souffrance.".to_string()
     } else {
         stale_commitments
             .iter()
@@ -1255,7 +1257,7 @@ fn build_proactive_context_markdown(
             .join("\n")
     };
     let touch_block = if losing_touch.is_empty() {
-        "- No losing-touch alerts.".to_string()
+        "- Aucun contact à relancer.".to_string()
     } else {
         losing_touch
             .iter()
@@ -1265,7 +1267,7 @@ fn build_proactive_context_markdown(
     };
 
     format!(
-        "# Proactive Context\n\n## Recent Meetings\n\n{meetings_block}\n\n## Recent Memos\n\n{memos_block}\n\n## Stale Commitments\n\n{stale_block}\n\n## Losing Touch\n\n{touch_block}\n"
+        "# Aide mémoire\n\n## Rendez-vous récents\n\n{meetings_block}\n\n## Mémos récents\n\n{memos_block}\n\n## Engagements en attente\n\n{stale_block}\n\n## Contacts à relancer\n\n{touch_block}\n"
     )
 }
 
@@ -2750,7 +2752,7 @@ fn build_artifact_template(
     // the draft directly into Gmail, Outlook, Word, etc. without seeing
     // raw markdown syntax.
     let frontmatter_block = format!(
-        "---\ntitle: {}\nartifact_type: {}\nsource_meeting: {}\nsource_title: {}\nsource_date: {}\nlinked_slug: {}\n---\n\n",
+        "---\ntitre: {}\ntype_brouillon: {}\ncompte_rendu_source: {}\ntitre_source: {}\ndate_source: {}\nidentifiant_lie: {}\n---\n\n",
         title,
         kind,
         meeting_path.display(),
@@ -4171,7 +4173,7 @@ pub fn cmd_weekly_summary() -> Result<WeeklySummaryView, String> {
 
     let meetings_count = meetings.len();
     let recent_titles = if meetings.is_empty() {
-        "- No meetings or memos in the last 7 days.".to_string()
+        "- Aucun rendez-vous ou mémo cette semaine.".to_string()
     } else {
         meetings
             .iter()
@@ -4182,19 +4184,19 @@ pub fn cmd_weekly_summary() -> Result<WeeklySummaryView, String> {
     };
 
     let decision_conflicts = if consistency.decision_conflicts.is_empty() {
-        "- No conflicting decision arcs detected.".to_string()
+        "- Aucune décision contradictoire détectée.".to_string()
     } else {
         consistency
             .decision_conflicts
             .iter()
             .take(5)
-            .map(|conflict| format!("- {} -> {}", conflict.topic, conflict.latest.what))
+            .map(|conflict| format!("- {} → {}", conflict.topic, conflict.latest.what))
             .collect::<Vec<_>>()
             .join("\n")
     };
 
     let stale_commitments = if consistency.stale_commitments.is_empty() {
-        "- No stale commitments detected.".to_string()
+        "- Aucun engagement en souffrance.".to_string()
     } else {
         consistency
             .stale_commitments
@@ -4216,19 +4218,19 @@ pub fn cmd_weekly_summary() -> Result<WeeklySummaryView, String> {
     };
 
     let open_actions_block = if open_actions.is_empty() {
-        "- No open action items found.".to_string()
+        "- Aucune action en cours.".to_string()
     } else {
         open_actions
             .iter()
             .take(6)
             .map(|item| {
                 format!(
-                    "- {}: {}{}",
+                    "- {} : {}{}",
                     item.assignee,
                     item.task,
                     item.due
                         .as_ref()
-                        .map(|due| format!(" (due {})", due))
+                        .map(|due| format!(" (échéance {})", due))
                         .unwrap_or_default()
                 )
             })
@@ -4312,7 +4314,7 @@ pub fn cmd_proactive_context_bundle() -> Result<ProactiveContextBundleView, Stri
         .unwrap_or_default();
 
     let summary = format!(
-        "{} meetings · {} memos · {} stale commitments · {} losing-touch alerts",
+        "{} RDV · {} mémos · {} engagement(s) en attente · {} contact(s) à relancer",
         recent_meetings.len(),
         recent_memos.len(),
         stale_commitments.len(),
@@ -6338,7 +6340,7 @@ mod tests {
         .unwrap();
 
         assert!(title.contains("Pricing Review"));
-        assert!(body.contains("source_meeting: /tmp/pricing-review.md"));
+        assert!(body.contains("compte_rendu_source: /tmp/pricing-review.md"));
         assert!(body.contains("Ship the new pricing page"));
         assert!(body.contains("Mat : Send follow-up"));
     }
@@ -6437,7 +6439,7 @@ mod tests {
             let (_title, body) =
                 build_artifact_template(&fm, &sections, Path::new("/tmp/pricing-review.md"), kind)
                     .unwrap_or_else(|error| panic!("template {kind} failed: {error}"));
-            assert!(body.contains("source_meeting: /tmp/pricing-review.md"));
+            assert!(body.contains("compte_rendu_source: /tmp/pricing-review.md"));
         }
     }
 
@@ -6605,12 +6607,12 @@ mod tests {
             "- Alex: Send updated doc",
         );
 
-        assert!(markdown.contains("# Weekly Summary"));
-        assert!(markdown.contains("## Recent Meetings"));
-        assert!(markdown.contains("## Decision Arcs"));
-        assert!(markdown.contains("## Stale Commitments"));
-        assert!(markdown.contains("## Open Actions"));
-        assert!(markdown.contains("## Monday Brief"));
+        assert!(markdown.contains("# Résumé hebdomadaire"));
+        assert!(markdown.contains("## Rendez-vous récents"));
+        assert!(markdown.contains("## Décisions à clarifier"));
+        assert!(markdown.contains("## Engagements en attente"));
+        assert!(markdown.contains("## Actions à faire"));
+        // Monday Brief retiré dans le fork Artemis (statique, anglais, sans valeur)
     }
 
     #[test]
@@ -7197,6 +7199,37 @@ pub fn cmd_live_transcript_status(state: tauri::State<AppState>) -> serde_json::
         "source": status.source,
         "diagnostic": status.diagnostic,
     })
+}
+
+/// Artemis: return live-transcript lines newer than the given cursor.
+/// JS polls this every ~150ms during a live session to display the
+/// running transcript. Without this command the JSONL file is only
+/// readable by external Claude/Codex sessions, which Artemis users
+/// don't run.
+#[tauri::command]
+pub fn cmd_live_transcript_lines(since: usize) -> serde_json::Value {
+    match minutes_core::live_transcript::read_since_line(since) {
+        Ok(lines) => {
+            let cursor = lines.iter().map(|l| l.line).max().unwrap_or(since);
+            let payload: Vec<_> = lines
+                .iter()
+                .map(|l| {
+                    serde_json::json!({
+                        "line": l.line,
+                        "ts": l.ts.to_rfc3339(),
+                        "text": l.text,
+                        "speaker": l.speaker,
+                    })
+                })
+                .collect();
+            serde_json::json!({ "cursor": cursor, "lines": payload })
+        }
+        Err(e) => serde_json::json!({
+            "cursor": since,
+            "lines": [],
+            "error": format!("{}", e),
+        }),
+    }
 }
 
 /// Update the CLAUDE.md in the assistant workspace to mention (or un-mention)
@@ -9085,32 +9118,39 @@ fn extract_current_meeting_path(line: &str) -> Option<&str> {
     None
 }
 
-// ── Artemis/Catalia chatbot (scoped to one meeting) ──────────────
+// ── Artemis/Catalia chatbot (scoped or general mode) ─────────────
 
-/// Send a user turn to Claude scoped to a single meeting artifact.
-/// The meeting content is injected into the system prompt (see
-/// `minutes_core::summarize::chat_about_meeting`) so Claude can only
-/// reason about THIS meeting and refuses to wander off-topic.
+/// Send a user turn to Claude. Two modes:
+/// - `meeting_path = Some(path)` → scoped to that meeting, the system
+///   prompt forces refusal of off-topic questions.
+/// - `meeting_path = None` → general Artemis assistant (sales strategy,
+///   weekly review summary discussion, generic Q&A).
 ///
 /// Uses the Anthropic API key from `[summarization].api_key` in the
 /// Artemis-embedded config.toml — no Claude CLI, no Node, no extra
 /// install on the commercial's machine.
 #[tauri::command]
 pub async fn cmd_chat_artifact(
-    meeting_path: String,
+    meeting_path: Option<String>,
     messages: Vec<minutes_core::summarize::ChatMessage>,
 ) -> Result<String, String> {
     // Load config (picks up the Artemis-seeded config.toml with api_key).
     let config = minutes_core::config::Config::load();
 
-    // Read the meeting .md from disk. Keeps the chatbot's knowledge
-    // up-to-date if Claude previously edited the artifact.
-    let meeting_content = std::fs::read_to_string(&meeting_path)
-        .map_err(|e| format!("Lecture du compte-rendu impossible ({}): {}", meeting_path, e))?;
-
-    if meeting_content.trim().is_empty() {
-        return Err("Le compte-rendu est vide.".to_string());
-    }
+    // Scoped mode: read the meeting .md fresh each call so we pick up
+    // any Claude-edited changes since the previous turn.
+    let meeting_content: Option<String> = match &meeting_path {
+        Some(path) => {
+            let content = std::fs::read_to_string(path).map_err(|e| {
+                format!("Lecture du compte-rendu impossible ({}): {}", path, e)
+            })?;
+            if content.trim().is_empty() {
+                return Err("Le compte-rendu est vide.".to_string());
+            }
+            Some(content)
+        }
+        None => None,
+    };
 
     if messages.is_empty() {
         return Err("Aucun message à envoyer.".to_string());
@@ -9136,7 +9176,7 @@ pub async fn cmd_chat_artifact(
     tauri::async_runtime::spawn_blocking(move || {
         minutes_core::summarize::chat_about_meeting(
             &config_clone,
-            &content_clone,
+            content_clone.as_deref(),
             &messages_clone,
         )
         .map_err(|e| format!("Erreur Claude : {}", e))

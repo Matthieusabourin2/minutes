@@ -1497,6 +1497,7 @@ fn main() {
             commands::cmd_start_live_transcript,
             commands::cmd_stop_live_transcript,
             commands::cmd_live_transcript_status,
+            commands::cmd_live_transcript_lines,
             commands::cmd_live_shortcut_settings,
             commands::cmd_set_live_shortcut,
             commands::cmd_install_update,

@@ -832,6 +832,51 @@
       gap: 8px;
     }
 
+    /* ── Artemis: live transcript stream panel (rolling text) ── */
+    .live-transcript-stream {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      max-height: 240px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .live-transcript-empty {
+      color: var(--text-secondary, #888);
+      font-style: italic;
+    }
+    .live-transcript-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .live-transcript-line {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+    }
+    .live-transcript-line .ts {
+      color: var(--text-secondary, #888);
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+      flex-shrink: 0;
+      min-width: 44px;
+    }
+    .live-transcript-line .text {
+      flex: 1;
+      word-wrap: break-word;
+    }
+    .live-transcript-line.fresh {
+      animation: live-line-fade-in 0.4s ease-out;
+    }
+    @keyframes live-line-fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* ── Recording bar ── */
     .recording-bar {
       display: none;
@@ -1960,6 +2005,21 @@
     .meeting-item:hover {
       background: var(--bg-hover);
       box-shadow: 0 1px 4px var(--shadow-soft);
+    }
+
+    /* Artemis: surlignage de la card en cours de discussion avec l'assistant */
+    .meeting-item.chat-active {
+      background: var(--surface-fill-strong, rgba(0, 102, 204, 0.08));
+      box-shadow: inset 3px 0 0 var(--accent-primary, #0066cc);
+    }
+    .meeting-item.chat-active::before {
+      content: '\1F4AC'; /* 💬 speech balloon */
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      opacity: 0.7;
     }
 
     .meeting-item:active {
@@ -3772,6 +3832,11 @@
       <div class="live-actions">
         <button class="btn btn-secondary btn-sm" id="btn-stop-live">Arrêter le direct</button>
       </div>
+      <!-- Artemis: rolling transcript display (upstream had no panel — text only went to JSONL) -->
+      <div class="live-transcript-stream" id="live-transcript-stream" hidden>
+        <div class="live-transcript-empty" id="live-transcript-empty">En attente de la première phrase…</div>
+        <div class="live-transcript-lines" id="live-transcript-lines"></div>
+      </div>
     </div>
 
     <!-- Processing bar (hidden when not processing) -->
@@ -3904,8 +3969,8 @@
           <span class="md-viewer-kind" id="md-viewer-kind">MD</span>
         </div>
         <div class="md-viewer-toolbar">
-          <button class="btn md-viewer-mode-btn active" id="md-viewer-preview-btn">Aperçu</button>
-          <button class="btn md-viewer-mode-btn" id="md-viewer-source-btn">Source</button>
+          <button class="btn md-viewer-mode-btn active" id="md-viewer-preview-btn">Final</button>
+          <button class="btn md-viewer-mode-btn" id="md-viewer-source-btn">Brouillon</button>
           <span class="md-viewer-toolbar-sep"></span>
           <button class="btn" id="md-viewer-promote-btn" hidden>Copier pour éditer</button>
           <button class="btn" id="md-viewer-save-btn" disabled>Sauvegarder</button>
@@ -4816,6 +4881,9 @@
     let isRecording = false;
     let isProcessing = false;
     let isLiveTranscript = false;
+    // Artemis: cursor for live-transcript text polling (last seen line number)
+    let liveTranscriptCursor = 0;
+    let liveTranscriptPolling = false;
     let currentMeetingPath = null;
     const liveBar = document.getElementById('live-bar');
     // Live bar elements are accessed by ID inline (live-time, live-utterances)
@@ -4954,7 +5022,7 @@
 
       const title = document.createElement('div');
       title.className = 'ambient-context-title';
-      title.textContent = 'Contexte ambiant';
+      title.textContent = 'Aide mémoire';
 
       const summary = document.createElement('div');
       summary.className = 'ambient-context-summary';
@@ -5523,6 +5591,8 @@
               const lvl = Math.min(100, liveStatus.audioLevel || 0);
               document.getElementById('live-level-fill').style.width = lvl + '%';
               if (!wasLive) startFastPoll();
+              // Artemis: pull new transcript lines (fire-and-forget; never blocks polling)
+              pollLiveTranscriptLines();
             } else {
               liveBar.classList.remove('active');
             }
@@ -5577,6 +5647,47 @@
 
     function stopFastPoll() {
       if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    }
+
+    // Artemis: append newly-finalized transcript lines to the panel.
+    // Re-entrant guard so 150ms polling can never stack overlapping calls.
+    async function pollLiveTranscriptLines() {
+      if (liveTranscriptPolling) return;
+      liveTranscriptPolling = true;
+      try {
+        const result = await invoke('cmd_live_transcript_lines', { since: liveTranscriptCursor });
+        const lines = (result && result.lines) || [];
+        if (lines.length === 0) return;
+        liveTranscriptCursor = result.cursor || liveTranscriptCursor;
+        const linesEl = document.getElementById('live-transcript-lines');
+        const emptyEl = document.getElementById('live-transcript-empty');
+        const streamEl = document.getElementById('live-transcript-stream');
+        if (!linesEl || !streamEl) return;
+        if (emptyEl) emptyEl.hidden = true;
+        for (const tl of lines) {
+          const row = document.createElement('div');
+          row.className = 'live-transcript-line fresh';
+          const ts = document.createElement('span');
+          ts.className = 'ts';
+          // Format wall-clock as HH:MM
+          try {
+            const d = new Date(tl.ts);
+            ts.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          } catch { ts.textContent = ''; }
+          const text = document.createElement('span');
+          text.className = 'text';
+          text.textContent = tl.text || '';
+          row.appendChild(ts);
+          row.appendChild(text);
+          linesEl.appendChild(row);
+        }
+        // Auto-scroll to latest
+        streamEl.scrollTop = streamEl.scrollHeight;
+      } catch (e) {
+        console.error('[live-transcript] poll lines failed:', e);
+      } finally {
+        liveTranscriptPolling = false;
+      }
     }
 
     function updateOutputNotice(notice) {
@@ -6063,7 +6174,12 @@
 
     document.getElementById('btn-create-artifact').addEventListener('click', async () => {
       if (!currentMeetingDetail?.path) return;
-      await createArtifactFromMeetingPath(currentMeetingDetail.path, 'debrief-memo');
+      const path = currentMeetingDetail.path;
+      // Close the meeting detail overlay first — the template picker is a
+      // separate overlay and otherwise renders behind / fights for focus
+      // with the open detail card.
+      closeDetailView();
+      await createArtifactFromMeetingPath(path, 'debrief-memo');
     });
 
     readinessButton.addEventListener('click', () => {
@@ -6655,7 +6771,20 @@
         for (const m of items) {
           const item = document.createElement('div');
           item.className = 'meeting-item';
+          // Artemis: tag the card with its meeting path so we can later
+          // (a) toggle the .chat-active highlight when the chatbot scope
+          // changes, and (b) recognise this card from anywhere in the JS.
+          item.dataset.meetingPath = m.path;
           item.addEventListener('click', () => {
+            // Artemis: if the chatbot panel is currently open, treat the
+            // click as "switch chatbot scope to this meeting" rather than
+            // opening the popup detail. Faster context switching while
+            // the user is brainstorming with the assistant.
+            const recallOpen = document.getElementById('recall-panel')?.classList.contains('expanded');
+            if (recallOpen && window.ArtemisChat) {
+              window.ArtemisChat.openForMeeting(m.path);
+              return;
+            }
             openMeetingDetail(m.path);
           });
 
@@ -6716,7 +6845,24 @@
           meetingsScroll.appendChild(item);
         }
       }
+      // Re-apply the chatbot scope highlight after re-render
+      syncChatScopeHighlight();
     }
+
+    // Artemis: paint a .chat-active border on the meeting card whose
+    // path matches the current chatbot scope (if scoped). Cleared in
+    // general mode.
+    function syncChatScopeHighlight() {
+      const cards = document.querySelectorAll('.meeting-item');
+      const scopedPath = window.ArtemisChat && window.ArtemisChat.currentMode() === 'scoped'
+        ? window.ArtemisChat.currentMeetingPath()
+        : null;
+      cards.forEach(c => {
+        c.classList.toggle('chat-active', !!scopedPath && c.dataset.meetingPath === scopedPath);
+      });
+    }
+
+    document.addEventListener('artemis-chat:scope-changed', syncChatScopeHighlight);
 
     async function loadMeetings() {
       try {
@@ -8199,7 +8345,11 @@
     const recallPanel = document.getElementById('recall-panel');
     const recallDot = document.getElementById('recall-dot');
     const recallPhaseLabel = document.getElementById('recall-phase-label');
-    const recallContextLabel = document.getElementById('recall-context-label');
+    // Artemis: the recall panel was repurposed as the chatbot, so the
+    // context-label ID was renamed to chat-context-label. Resolve it
+    // tolerantly so the legacy `setRecallPhase` calls don't NPE.
+    const recallContextLabel = document.getElementById('recall-context-label')
+      || document.getElementById('chat-context-label');
     const recallTerminalContainer = document.getElementById('recall-terminal-container');
     const recallLoading = document.getElementById('recall-loading');
     const recallNote = document.getElementById('recall-note');
@@ -8304,15 +8454,26 @@
     }
 
     async function openWeeklyPhase() {
+      // Artemis: bascule le chatbot en mode général et injecte le résumé
+      // hebdo comme bulle assistant persistée. Le user peut ensuite
+      // enchaîner ("Comment je priorise ?", "Génère un plan de relance"
+      // etc.) dans la même conversation, et le résumé reste en contexte.
       await expandRecallPanel();
-      setRecallPhase('weekly', 'Last 7 days');
-      recallWeeklyContent.textContent = 'Chargement du résumé hebdomadaire…';
+      if (!window.ArtemisChat) return;
+      window.ArtemisChat.openGeneral();
+      // Bulle "loading" transitoire (PAS persistée — Claude ne la verra pas)
+      const loading = window.ArtemisChat.showTransientBubble('loading', 'Génération du résumé hebdomadaire…');
       try {
         const summary = await invoke('cmd_weekly_summary');
-        recallWeeklyContent.textContent = summary.markdown || 'Aucun résumé hebdomadaire disponible.';
+        if (loading && loading.remove) loading.remove();
+        const markdown = (summary && summary.markdown) || 'Aucun résumé hebdomadaire disponible.';
+        window.ArtemisChat.injectAssistantBubble(markdown);
       } catch (e) {
         console.error('Weekly summary:', e);
-        recallWeeklyContent.textContent = `Could not load weekly summary: ${e}`;
+        if (loading && loading.remove) loading.remove();
+        window.ArtemisChat.injectAssistantBubble(
+          'Impossible de charger le résumé hebdomadaire : ' + (e && e.message ? e.message : e)
+        );
       }
     }
 
@@ -8481,9 +8642,14 @@
     // ── Open chatbot panel (Artemis: no PTY, no Claude CLI — embedded chat) ──
     async function openRecall(mode, meetingPath) {
       await expandRecallPanel();
-      // Load the chat for the requested meeting (or the most recent one).
-      if (window.ArtemisChat) {
+      if (!window.ArtemisChat) return;
+      // If a meeting path is supplied → scoped mode on that meeting.
+      // Otherwise → general assistant (used by footer "Assistant" button
+      // and by the Contexte ambiant "Ouvrir l'assistant" button).
+      if (meetingPath) {
         window.ArtemisChat.openForMeeting(meetingPath);
+      } else {
+        window.ArtemisChat.openGeneral();
       }
     }
 
@@ -8877,6 +9043,14 @@
       setFooterCaptureMode(true, 'live');
       statusPill.className = 'status-pill live';
       statusPill.textContent = 'live';
+      // Artemis: reset transcript display panel
+      liveTranscriptCursor = 0;
+      const linesEl = document.getElementById('live-transcript-lines');
+      const emptyEl = document.getElementById('live-transcript-empty');
+      const streamEl = document.getElementById('live-transcript-stream');
+      if (linesEl) linesEl.replaceChildren();
+      if (emptyEl) emptyEl.hidden = false;
+      if (streamEl) streamEl.hidden = false;
       startFastPoll();
       playCue('start');
     });
@@ -9373,8 +9547,8 @@
         : null;
       openArtifactParseError = activeParseError;
       mdViewerKind.textContent = openArtifactKind === 'json' ? 'JSON' : openArtifactKind === 'text' ? 'TXT' : 'MD';
-      mdViewerPreviewBtn.textContent = openArtifactKind === 'json' ? 'Tree' : 'Preview';
-      mdViewerSourceBtn.textContent = 'Source';
+      mdViewerPreviewBtn.textContent = openArtifactKind === 'json' ? 'Arbre' : 'Final';
+      mdViewerSourceBtn.textContent = 'Brouillon';
       mdViewerPreviewBtn.classList.toggle('active', !sourceMode);
       mdViewerSourceBtn.classList.toggle('active', sourceMode);
       mdViewerSourceBtn.disabled = !openArtifactEditable;
@@ -9861,9 +10035,12 @@
     })();
 
     // ═════════════════════════════════════════════════════════════════
-    // ArtemisChat — embedded chatbot, scoped to one meeting artifact
-    // Replaces the upstream Recall PTY panel. No Claude CLI, no Node,
-    // no local install. Uses the Catalia API key embedded in config.toml.
+    // ArtemisChat — embedded chatbot, two modes:
+    //   - 'scoped'  : verrouillé sur un compte-rendu unique
+    //   - 'general' : assistant Artemis libre (stratégie commerciale,
+    //                 résumé hebdo, conseils ProcessCom, etc.)
+    // Historique persisté en localStorage par meeting path. Mode général
+    // utilise la clé spéciale `__general__`.
     // ═════════════════════════════════════════════════════════════════
     window.ArtemisChat = (function () {
       const messagesEl = document.getElementById('chat-messages');
@@ -9873,18 +10050,20 @@
       const clearBtn = document.getElementById('btn-chat-clear');
       const contextLabel = document.getElementById('chat-context-label');
       const MAX_TURNS = 30;
+      const GENERAL_KEY = '__general__';
 
+      let mode = 'general'; // 'general' | 'scoped'
       let currentMeetingPath = null;
       let conversation = []; // [{role, content}]
       let sending = false;
 
-      function storageKey(path) {
-        return 'artemis.chat.' + path;
+      function storageKey(pathOrGeneral) {
+        return 'artemis.chat.' + pathOrGeneral;
       }
 
-      function loadConversation(path) {
+      function loadConversation(key) {
         try {
-          const raw = localStorage.getItem(storageKey(path));
+          const raw = localStorage.getItem(storageKey(key));
           if (!raw) return [];
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) return parsed;
@@ -9892,18 +10071,18 @@
         return [];
       }
 
+      function activeStorageKey() {
+        return mode === 'scoped' && currentMeetingPath ? currentMeetingPath : GENERAL_KEY;
+      }
+
       function persistConversation() {
-        if (!currentMeetingPath) return;
         try {
-          localStorage.setItem(
-            storageKey(currentMeetingPath),
-            JSON.stringify(conversation)
-          );
+          localStorage.setItem(storageKey(activeStorageKey()), JSON.stringify(conversation));
         } catch (_) { }
       }
 
-      function clearPersisted(path) {
-        try { localStorage.removeItem(storageKey(path)); } catch (_) { }
+      function clearPersisted(key) {
+        try { localStorage.removeItem(storageKey(key)); } catch (_) { }
       }
 
       function meetingLabelFromPath(path) {
@@ -9912,34 +10091,48 @@
         return basename.replace(/\.md$/i, '').replace(/^[0-9-]+-/, '').replace(/-/g, ' ');
       }
 
+      // Notify the rest of the UI so it can update the sidebar highlight
+      // without us reaching into its internals.
+      function emitScopeChanged() {
+        document.dispatchEvent(new CustomEvent('artemis-chat:scope-changed', {
+          detail: { mode, meetingPath: currentMeetingPath },
+        }));
+      }
+
       function render() {
         messagesEl.innerHTML = '';
 
-        if (!currentMeetingPath) {
-          const p = document.createElement('div');
-          p.className = 'chat-empty';
-          p.textContent = 'Ouvre un compte-rendu dans la liste pour discuter avec l\'assistant à son sujet.';
-          messagesEl.appendChild(p);
-          sendBtn.disabled = true;
-          inputEl.disabled = true;
-          inputEl.placeholder = 'Sélectionne d\'abord un compte-rendu…';
-          contextLabel.textContent = '';
-          return;
+        if (mode === 'scoped' && currentMeetingPath) {
+          contextLabel.textContent = '— ' + meetingLabelFromPath(currentMeetingPath);
+          inputEl.disabled = false;
+          inputEl.placeholder = 'Pose une question sur ce rendez-vous…';
+          if (conversation.length === 0) {
+            const p = document.createElement('div');
+            p.className = 'chat-empty';
+            p.innerHTML = 'Que veux-tu faire avec ce compte-rendu ?<br><br>' +
+              '<span style="font-size:12px;opacity:.75">Exemples : « Rédige un e-mail de follow-up à envoyer demain », ' +
+              '« Quelles objections anticiper au prochain RDV ? », ' +
+              '« Propose une trame de devis basée sur les prestations identifiées »</span>';
+            messagesEl.appendChild(p);
+          }
+        } else {
+          // General mode
+          contextLabel.textContent = '— Assistant général';
+          inputEl.disabled = false;
+          inputEl.placeholder = 'Pose une question sur ton activité commerciale…';
+          if (conversation.length === 0) {
+            const p = document.createElement('div');
+            p.className = 'chat-empty';
+            p.innerHTML = 'Mode général — pas de RDV scopé.<br><br>' +
+              '<span style="font-size:12px;opacity:.75">Exemples : « Comment prioriser mes relances cette semaine ? », ' +
+              '« Donne-moi un argumentaire pour vendre une terrasse en bois », ' +
+              '« Comment adapter mon discours à un prospect Travaillomane ? »<br><br>' +
+              'Pour discuter d\'un RDV précis, clique dessus dans la liste à gauche.</span>';
+            messagesEl.appendChild(p);
+          }
         }
 
-        contextLabel.textContent = '— ' + meetingLabelFromPath(currentMeetingPath);
-        inputEl.disabled = false;
-        inputEl.placeholder = 'Pose une question sur ce rendez-vous…';
-
-        if (conversation.length === 0) {
-          const p = document.createElement('div');
-          p.className = 'chat-empty';
-          p.innerHTML = 'Que veux-tu faire avec ce compte-rendu ?<br><br>' +
-            '<span style="font-size:12px;opacity:.75">Exemples : « Rédige un e-mail de follow-up à envoyer demain », ' +
-            '« Quelles objections anticiper au prochain RDV ? », ' +
-            '« Propose une trame de devis basée sur les prestations identifiées »</span>';
-          messagesEl.appendChild(p);
-        } else {
+        if (conversation.length > 0) {
           conversation.forEach(m => {
             const b = document.createElement('div');
             b.className = 'chat-bubble ' + (m.role === 'user' ? 'user' : 'assistant');
@@ -9956,7 +10149,6 @@
         if (emptyEl && emptyEl.parentNode === messagesEl) {
           messagesEl.removeChild(emptyEl);
         }
-        // Also remove any transient chat-empty that render() put in
         [...messagesEl.querySelectorAll('.chat-empty')].forEach(n => n.remove());
         const b = document.createElement('div');
         b.className = 'chat-bubble ' + kind;
@@ -9969,7 +10161,7 @@
       async function send() {
         if (sending) return;
         const text = inputEl.value.trim();
-        if (!text || !currentMeetingPath) return;
+        if (!text) return;
 
         if (conversation.length >= MAX_TURNS) {
           appendBubble('error', 'Conversation trop longue (30 tours max). Clique « Vider » pour recommencer.');
@@ -9989,7 +10181,7 @@
 
         try {
           const reply = await invoke('cmd_chat_artifact', {
-            meetingPath: currentMeetingPath,
+            meetingPath: mode === 'scoped' ? currentMeetingPath : null,
             messages: conversation,
           });
           loadingBubble.remove();
@@ -10005,7 +10197,6 @@
           loadingBubble.remove();
           const msg = typeof e === 'string' ? e : (e && e.message) || String(e);
           appendBubble('error', msg);
-          // Roll back the user turn so the user can retry without re-typing
           conversation.pop();
           persistConversation();
         } finally {
@@ -10016,23 +10207,46 @@
         }
       }
 
+      // Switch the chatbot to scoped mode on a given meeting. Reloads
+      // the conversation history specific to that meeting.
       function openForMeeting(meetingPath) {
-        // Fallback: if no path supplied, keep whatever was last opened
-        // (e.g. user clicked footer "Assistant" without selecting a meeting).
-        if (meetingPath && meetingPath !== currentMeetingPath) {
-          currentMeetingPath = meetingPath;
-          conversation = loadConversation(meetingPath);
-        } else if (!currentMeetingPath && !meetingPath) {
-          // Try to find the most recently opened meeting from detail state.
-          const detailState = document.getElementById('detail-overlay');
-          const currentMeetingEl = detailState && detailState.dataset && detailState.dataset.currentMeeting;
-          if (currentMeetingEl) {
-            currentMeetingPath = currentMeetingEl;
-            conversation = loadConversation(currentMeetingEl);
-          }
-        }
+        if (!meetingPath) return;
+        mode = 'scoped';
+        currentMeetingPath = meetingPath;
+        conversation = loadConversation(meetingPath);
         render();
+        emitScopeChanged();
         setTimeout(() => { if (!inputEl.disabled) inputEl.focus(); }, 100);
+      }
+
+      // Switch the chatbot to general mode (no meeting). Loads the
+      // dedicated general conversation history.
+      function openGeneral() {
+        mode = 'general';
+        currentMeetingPath = null;
+        conversation = loadConversation(GENERAL_KEY);
+        render();
+        emitScopeChanged();
+        setTimeout(() => { if (!inputEl.disabled) inputEl.focus(); }, 100);
+      }
+
+      // Inject a synthetic assistant bubble into the current general
+      // conversation (used by the "Hebdo" button to drop the weekly
+      // summary as a regular message that the user can then discuss).
+      // Returns the DOM node so callers can manipulate it.
+      function injectAssistantBubble(text) {
+        if (mode !== 'general') openGeneral();
+        conversation.push({ role: 'assistant', content: text });
+        const node = appendBubble('assistant', text);
+        persistConversation();
+        return node;
+      }
+
+      // Show a transient bubble that is NOT persisted to the conversation
+      // history (used for "loading" placeholders that should disappear
+      // before Claude sees them).
+      function showTransientBubble(kind, text) {
+        return appendBubble(kind, text);
       }
 
       // ── Wire up ──
@@ -10050,10 +10264,10 @@
       });
 
       clearBtn.addEventListener('click', () => {
-        if (!currentMeetingPath) return;
-        if (!confirm('Vider la conversation courante ?')) return;
+        const label = mode === 'scoped' ? 'Vider la conversation de ce RDV ?' : 'Vider la conversation générale ?';
+        if (!confirm(label)) return;
         conversation = [];
-        clearPersisted(currentMeetingPath);
+        clearPersisted(activeStorageKey());
         render();
       });
 
@@ -10061,6 +10275,10 @@
 
       return {
         openForMeeting,
+        openGeneral,
+        injectAssistantBubble,
+        showTransientBubble,
+        currentMode: () => mode,
         currentMeetingPath: () => currentMeetingPath,
       };
     })();

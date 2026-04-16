@@ -23,6 +23,16 @@ name = "Commercial"
 model = "small"
 language = "fr"
 
+# Aligne le modèle de la dictée et de la transcription en direct sur celui
+# de l'enregistrement (small) — sinon ils retombent sur le défaut upstream
+# "base" qui n'est pas téléchargé chez le commercial et le bouton Direct
+# échoue silencieusement avec "ggml-base.bin not found".
+[dictation]
+model = "small"
+
+[live_transcript]
+model = "small"
+
 [diarization]
 engine = "auto"
 
