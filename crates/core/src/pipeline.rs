@@ -1044,6 +1044,15 @@ where
             transcript.clone()
         };
 
+        // Artemis/Catalia : pour les memos (note rapide / voice memo), on passe
+        // en mode memo → `resolve_system_prompt` prend `memo_prompt` au lieu
+        // de `custom_prompt` (prompt allégé, sans profilage ProcessCom).
+        let _memo_guard = if artifact.frontmatter.r#type == ContentType::Memo {
+            Some(summarize::MemoModeGuard::new())
+        } else {
+            None
+        };
+
         summarize::summarize_with_screens(
             &transcript_with_notes,
             &screen_files,
@@ -1470,6 +1479,14 @@ where
             )
         } else {
             transcript.clone()
+        };
+
+        // Artemis/Catalia : mode memo pour les notes rapides / voice memos —
+        // voir commentaire dans `enrich_transcript_artifact` ci-dessus.
+        let _memo_guard = if content_type == ContentType::Memo {
+            Some(summarize::MemoModeGuard::new())
+        } else {
+            None
         };
 
         // Send screenshots as actual images to vision-capable LLMs

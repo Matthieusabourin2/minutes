@@ -367,33 +367,13 @@ pub fn commands() -> Vec<Command> {
             visibility: Visibility::when_recording(),
             input: InputKind::PromptText,
         },
-        Command {
-            id: ActionId::StartLiveTranscript,
-            title: "Start live transcript",
-            description: "Real-time transcription for mid-meeting AI coaching",
-            keywords: &["live", "realtime", "coaching", "stream"],
-            section: Section::Recording,
-            visibility: Visibility::when_idle(),
-            input: InputKind::None,
-        },
-        Command {
-            id: ActionId::StopLiveTranscript,
-            title: "Stop live transcript",
-            description: "End the live transcript session",
-            keywords: &["stop", "end", "live"],
-            section: Section::Recording,
-            visibility: Visibility::when_live_transcript(),
-            input: InputKind::None,
-        },
-        Command {
-            id: ActionId::ReadLiveTranscript,
-            title: "Read live transcript",
-            description: "Show the current live session's text",
-            keywords: &["read", "view", "show", "live"],
-            section: Section::Recording,
-            visibility: Visibility::when_live_transcript(),
-            input: InputKind::None,
-        },
+        // Artemis/Catalia : commandes de transcription en direct retirées à
+        // la demande produit. Le backend est conservé (cmd_start/stop_live_transcript)
+        // mais aucune surface d'activation depuis l'UI ou la palette.
+        //
+        // Command { id: ActionId::StartLiveTranscript, ... },
+        // Command { id: ActionId::StopLiveTranscript, ... },
+        // Command { id: ActionId::ReadLiveTranscript, ... },
         // ── Dictation ────────────────────────────────────────────────
         Command {
             id: ActionId::StartDictation,

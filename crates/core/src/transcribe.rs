@@ -582,6 +582,16 @@ fn transcribe_with_whisper(
     params.set_language(config.transcription.language.as_deref());
     params.set_token_timestamps(true);
 
+    // Artemis/Catalia : initial_prompt biaise whisper vers le vocabulaire
+    // métier (paysagiste : terrasse, pergola, pavé, gabion, etc.).
+    // Sans prompt, whisper peut produire des homophones ("paver" → "payer",
+    // "gabion" → "gabarit"). Source : config.toml ou defaults Artemis.
+    if let Some(prompt) = config.transcription.initial_prompt.as_deref() {
+        if !prompt.trim().is_empty() {
+            params.set_initial_prompt(prompt);
+        }
+    }
+
     // Abort callback: prevents infinite hangs on large models with problematic audio.
     // Timeout: base 5 min + 3x audio length, capped at 1 hour.
     // The small model transcribes ~15-30x faster than realtime on Apple Silicon,

@@ -20,13 +20,32 @@
 name = "Commercial"
 
 [transcription]
-model = "small"
+# Large v3 Turbo : meilleur modèle français pour les RDV commerciaux,
+# rapide sur Apple Silicon. 1,6 Go — téléchargé au 1er lancement depuis
+# l'onboarding. Fallback automatique : s'il n'est pas téléchargé, ouvrir
+# l'app pour le récupérer via l'état système.
+model = "large-v3-turbo"
 language = "fr"
 
-# Aligne le modèle de la dictée et de la transcription en direct sur celui
-# de l'enregistrement (small) — sinon ils retombent sur le défaut upstream
-# "base" qui n'est pas téléchargé chez le commercial et le bouton Direct
-# échoue silencieusement avec "ggml-base.bin not found".
+# initial_prompt : biaise whisper vers le vocabulaire métier paysagiste
+# (gain mesurable sur des termes comme "pouzzolane", "gabion", "pavé
+# granit" vs homophones). Le texte n'apparaît PAS dans la transcription —
+# il sert seulement de contexte pour la reconnaissance.
+initial_prompt = """Rendez-vous commercial Artemis Paysages. Vocabulaire : \
+terrasse bois, terrasse composite, terrasse pierre, pergola, pergola \
+bioclimatique, pavé, pavé granit, pavé autobloquant, dallage, pierre \
+naturelle, pouzzolane, gabion, muret, enrochement, clôture, portail, \
+portail coulissant, portail battant, plantation, végétaux, massif, haie, \
+engazonnement, arrosage automatique, goutte-à-goutte, éclairage extérieur, \
+piscine coque, piscine béton, pool house, carport, abri voiture, cour, \
+allée, devis, métré, chantier, bureau d'études, maçonnerie paysagère."""
+
+# IMPORTANT : la dictée et la transcription en direct sont des modes
+# temps réel (chunks de 2 s). large-v3-turbo est trop lourd à charger
+# pour ces modes (chargement 1,6 Go / chunk = pas de sortie temps réel).
+# On reste sur `small` (466 Mo) qui tient le débit et a une précision
+# suffisante pour ces contextes courts. La qualité max de large-v3-turbo
+# est réservée à l'enregistrement complet (mode batch ci-dessus).
 [dictation]
 model = "small"
 
@@ -41,11 +60,60 @@ engine = "auto"
 engine = "claude"
 api_key = "__CLE_API_CLAUDE__"
 
-# Prompt custom orienté rendez-vous commercial paysagiste, avec
-# analyse ProcessCom du prospect. Les en-têtes KEY POINTS / DECISIONS /
-# ACTION ITEMS (en anglais) restent présents en fin de résumé pour que
-# l'extraction structurée de minutes (action items interrogeables, etc.)
-# continue de fonctionner.
+# Prompt pour les NOTES RAPIDES (voice memos, captures courtes).
+# Volontairement allégé : pas de profilage ProcessCom, pas d'analyse
+# commerciale — une note rapide est un outil personnel pour le commercial,
+# pas un livrable destiné à être exploité. On lui donne juste un résumé
+# lisible + ses action items s'il en a dicté.
+memo_prompt = """
+Tu reçois la transcription d'une note rapide dictée par un commercial
+d'Artemis Paysages. Cela peut être une idée, un rappel, une observation
+de terrain, ou un petit compte-rendu personnel.
+
+Réponds strictement en français. Sois concis — une note rapide ne justifie
+pas d'analyse lourde.
+
+Produis UNIQUEMENT :
+
+## Résumé
+Une ou deux phrases qui reformulent proprement la note.
+
+## Détails
+Seulement si la note contient plusieurs idées ou points distincts. Sinon,
+omets cette section.
+
+## À faire
+Liste des actions concrètes mentionnées par le commercial (une par ligne).
+Omets cette section s'il n'y a aucune action explicite.
+
+---
+
+Termine ensuite par les sections structurées en anglais ci-dessous (elles
+servent à l'extraction machine côté Minutes). Si une section est vide,
+garde l'en-tête et écris une ligne unique « - None » dessous. Conserve
+EXACTEMENT ce format :
+
+KEY POINTS:
+- (reprends le résumé en 1-2 bullets, en français)
+
+DECISIONS:
+- None
+
+ACTION ITEMS:
+- @commercial: description de la tâche (une par ligne ; en français)
+
+OPEN QUESTIONS:
+- None
+
+COMMITMENTS:
+- None
+
+PARTICIPANTS:
+- Commercial
+"""
+
+# Prompt pour les RENDEZ-VOUS commerciaux complets (enregistrement normal).
+# Version riche avec profilage ProcessCom + analyse commerciale.
 custom_prompt = """
 Tu es l'assistant des commerciaux d'Artemis Paysages, une entreprise
 d'aménagement extérieur spécialisée en maçonnerie paysagère, terrasses,

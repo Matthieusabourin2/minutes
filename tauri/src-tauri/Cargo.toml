@@ -1,8 +1,8 @@
 [package]
-name = "minutes-app"
+name = "artemis-paysages-app"
 version = "0.1.0"
 edition = "2021"
-description = "Minutes — menu bar app for conversation memory"
+description = "Artemis Paysages — Enregistreur de réunion et analyse ProcessCom"
 
 [features]
 parakeet = ["minutes-core/parakeet"]

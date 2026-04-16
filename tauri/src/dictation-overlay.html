@@ -1,88 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dictée</title>
+  <title>Artemis Paysages — Dictée</title>
+  <link rel="stylesheet" href="styles/theme-tokens.css">
   <style>
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/Geist-Regular.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 500;
-      src: url('fonts/Geist-Medium.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Geist Mono';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/GeistMono-Regular.woff2') format('woff2');
-    }
+    /* Tokens chargés via styles/theme-tokens.css.
+       Alias locaux pour garder la cohérence des noms utilisés dans ce HTML
+       (red-ring/glow/outline/halo, green-ring/glow, accent-ring/glow, spinner-track, waveform-*). */
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      color-scheme: light dark;
-      --bg-hover:       #1C1C1A;
-      --border:         rgba(255, 255, 255, 0.06);
-      --border-mid:     #2A2924;
-      --text:       #E8E4DA;
-      --text-secondary: #6B6760;
-      --text-tertiary:  #3D3B38;
-      --accent:     #30D158;
-      --red:        #FF453A;
-      --green:      #30D158;
-      --red-border-strong: rgba(255, 69, 58, 0.45);
-      --red-ring: rgba(255, 69, 58, 0.16);
-      --red-glow: rgba(255, 69, 58, 0.28);
-      --red-outline: rgba(255, 69, 58, 0.14);
-      --red-halo: rgba(255, 69, 58, 0.08);
-      --green-ring: rgba(48, 209, 88, 0.18);
-      --green-glow: rgba(48, 209, 88, 0.28);
-      --accent-ring: rgba(48, 209, 88, 0.18);
-      --accent-glow: rgba(48, 209, 88, 0.28);
-      --spinner-track: rgba(48, 209, 88, 0.18);
-      --waveform-top: rgba(255,255,255,0.85);
-      --waveform-bottom: rgba(255,255,255,0.42);
-      --shadow:
-        0 14px 28px rgba(0, 0, 0, 0.35),
-        0 4px 10px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg-hover:       #E8E2D8;
-        --border:         rgba(0, 0, 0, 0.07);
-        --border-mid:     rgba(0, 0, 0, 0.13);
-        --text:           #1A1916;
-        --text-secondary: #8C8880;
-        --text-tertiary:  #BDB9B0;
-        --accent:         #C96B4E;
-        --red:            #C0392B;
-        --green:          #2E7D46;
-        --red-border-strong: rgba(192, 57, 43, 0.32);
-        --red-ring: rgba(192, 57, 43, 0.12);
-        --red-glow: rgba(192, 57, 43, 0.18);
-        --red-outline: rgba(192, 57, 43, 0.12);
-        --red-halo: rgba(192, 57, 43, 0.06);
-        --green-ring: rgba(46, 125, 70, 0.14);
-        --green-glow: rgba(46, 125, 70, 0.20);
-        --accent-ring: rgba(201, 107, 78, 0.14);
-        --accent-glow: rgba(201, 107, 78, 0.20);
-        --spinner-track: rgba(201, 107, 78, 0.14);
-        --waveform-top: rgba(26, 25, 22, 0.70);
-        --waveform-bottom: rgba(26, 25, 22, 0.28);
-        --shadow:
-          0 14px 28px rgba(0, 0, 0, 0.12),
-          0 4px 10px rgba(0, 0, 0, 0.08),
-          inset 0 1px 0 rgba(0, 0, 0, 0.03);
-      }
+      --red-ring: var(--red-border);
+      --red-glow: var(--red-tint);
+      --red-outline: var(--red-tint);
+      --red-halo: var(--red-glow-soft);
+      --accent-ring: var(--dictation-accent-ring);
+      --accent-glow: var(--dictation-accent-glow);
+      --spinner-track: var(--dictation-spinner-track);
+      --waveform-top: var(--dictation-waveform-top);
+      --waveform-bottom: var(--dictation-waveform-bottom);
+      --green-ring: var(--dictation-listening-ring);
+      --green-glow: var(--dictation-listening-glow);
+      --shadow: var(--dictation-pill-shadow);
     }
 
     html, body {
@@ -91,7 +33,7 @@
     }
 
     body {
-      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-sans);
       background: transparent;
       overflow: hidden;
       -webkit-user-select: none;

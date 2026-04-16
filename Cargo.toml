@@ -6,10 +6,10 @@ resolver = "2"
 version = "0.12.1"
 edition = "2021"
 license = "MIT"
-authors = ["Mat Silverstein"]
-description = "Conversation memory for AI assistants"
-repository = "https://github.com/silverstein/minutes"
-homepage = "https://useminutes.app"
+authors = ["Mat Silverstein", "Catalia (fork Artemis Paysages)"]
+description = "Artemis Paysages — Enregistreur de réunion et analyse ProcessCom (fork de silverstein/minutes)"
+repository = "https://github.com/Matthieusabourin2/minutes"
+homepage = "https://www.artemis-paysages.fr"
 
 [profile.release]
 strip = true

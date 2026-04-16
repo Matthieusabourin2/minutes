@@ -1,27 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minutes Palette</title>
+  <title>Artemis Paysages — Palette</title>
+  <link rel="stylesheet" href="../styles/theme-tokens.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    /* Tokens chargés via ../styles/theme-tokens.css — on récupère les variables --panel, --accent, etc. Alias locaux pour ce HTML : */
     :root {
-      --panel: rgba(28, 28, 34, 0.98);
-      --panel-edge: rgba(255, 255, 255, 0.06);
-      --text: #f5f5f7;
-      --text-secondary: #98989d;
-      --text-tertiary: #636366;
-      --accent: #4da8d9;
-      --accent-soft: rgba(77, 168, 217, 0.18);
-      --row-hover: rgba(255, 255, 255, 0.04);
-      --row-focus: rgba(77, 168, 217, 0.16);
-      --section-label: #6e6e73;
-      --shadow:
-        0 24px 48px rgba(0, 0, 0, 0.32),
-        0 6px 14px rgba(0, 0, 0, 0.24),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      --shadow: var(--palette-shadow);
     }
 
     html, body {
@@ -215,7 +204,7 @@
         class="query"
         id="query"
         type="text"
-        placeholder="Search Minutes commands..."
+        placeholder="Rechercher une commande Artemis…"
         autofocus
         spellcheck="false"
         autocomplete="off"
@@ -228,7 +217,7 @@
            pass 3: a user who hits ⌘⇧K expecting VS Code's Delete
            Line and gets this overlay needs to know what app is
            hijacking the chord. The badge tells them. -->
-      <span class="branding">Minutes Palette</span>
+      <span class="branding">Palette Artemis</span>
       <span><kbd>↑↓</kbd>navigate</span>
       <span><kbd>⏎</kbd>run</span>
       <span><kbd>esc</kbd>close</span>
@@ -743,7 +732,7 @@
     function exitLockedMode() {
       mode = { kind: "browsing" };
       queryEl.value = "";
-      queryEl.placeholder = "Search Minutes commands...";
+      queryEl.placeholder = "Rechercher une commande Artemis…";
       prefixEl.textContent = ">";
       focusedIndex = 0;
       hintEl.textContent = "";

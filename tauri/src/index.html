@@ -1,59 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minutes</title>
+  <title>Artemis Paysages — Enregistreur de Réunion</title>
+  <!-- Artemis Paysages design tokens : palette olive + neutres Artemis, fonts Montserrat/EB Garamond -->
+  <link rel="stylesheet" href="styles/theme-tokens.css">
   <style>
-    @font-face {
-      font-family: 'Instrument Serif';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/InstrumentSerif-Regular.woff2') format('woff2');
-    }
-
-    @font-face {
-      font-family: 'Instrument Serif';
-      font-style: italic;
-      font-weight: 400;
-      src: url('fonts/InstrumentSerif-Italic.woff2') format('woff2');
-    }
-
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/Geist-Regular.woff2') format('woff2');
-    }
-
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 500;
-      src: url('fonts/Geist-Medium.woff2') format('woff2');
-    }
-
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 600;
-      src: url('fonts/Geist-SemiBold.woff2') format('woff2');
-    }
-
-    @font-face {
-      font-family: 'Geist Mono';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/GeistMono-Regular.woff2') format('woff2');
-    }
-
-    @font-face {
-      font-family: 'Geist Mono';
-      font-style: normal;
-      font-weight: 500;
-      src: url('fonts/GeistMono-Medium.woff2') format('woff2');
-    }
+    /* Note : tous les tokens (couleurs, fonts, ombres) sont définis dans styles/theme-tokens.css.
+       Ce bloc <style> ne contient plus que les styles spécifiques au layout de cette page. */
 
     * {
       margin: 0;
@@ -61,149 +17,8 @@
       box-sizing: border-box;
     }
 
-    :root {
-      color-scheme: light dark;
-      --bg: #0D0D0B;
-      --bg-elevated: #141412;
-      --bg-hover: #1C1C1A;
-      --border: rgba(255, 255, 255, 0.06);
-      --border-mid: #2A2924;
-      --text: #E8E4DA;
-      --text-secondary: #6B6760;
-      --text-tertiary: #3D3B38;
-      --accent: #30D158;
-      --accent-hover: #4ADE70;
-      --accent-soft: rgba(48, 209, 88, 0.10);
-      --red: #FF453A;
-      --red-bg: rgba(255, 69, 58, 0.12);
-      --green: #30D158;
-      --live: #30D158;
-      --purple: #BF5AF2;
-      --orange: #D4832A;
-      --purple-solid-soft: rgba(155, 133, 196, 0.70);
-      --purple-solid-strong: rgba(155, 133, 196, 0.85);
-      --accent-tint: rgba(48, 209, 88, 0.12);
-      --accent-tint-soft: rgba(48, 209, 88, 0.06);
-      --accent-border: rgba(48, 209, 88, 0.15);
-      --accent-border-strong: rgba(48, 209, 88, 0.40);
-      --green-tint: rgba(48, 209, 88, 0.12);
-      --green-tint-soft: rgba(48, 209, 88, 0.06);
-      --green-border: rgba(48, 209, 88, 0.12);
-      --green-border-soft: rgba(48, 209, 88, 0.08);
-      --green-glow: rgba(48, 209, 88, 0.28);
-      --green-glow-soft: rgba(48, 209, 88, 0.18);
-      --green-solid-soft: rgba(48, 209, 88, 0.70);
-      --green-solid-strong: rgba(48, 209, 88, 0.85);
-      --red-tint: rgba(255, 69, 58, 0.12);
-      --red-tint-soft: rgba(255, 69, 58, 0.06);
-      --red-border: rgba(255, 69, 58, 0.10);
-      --red-border-strong: rgba(255, 69, 58, 0.30);
-      --red-border-stronger: rgba(255, 69, 58, 0.50);
-      --red-tint-strong: rgba(255, 69, 58, 0.20);
-      --red-tint-stronger: rgba(255, 69, 58, 0.25);
-      --red-glow-soft: rgba(255, 69, 58, 0.04);
-      --orange-tint: rgba(212, 160, 60, 0.12);
-      --orange-tint-soft: rgba(212, 160, 60, 0.08);
-      --orange-border: rgba(212, 160, 60, 0.16);
-      --shadow-color: rgba(0, 0, 0, 0.34);
-      --shadow-soft: rgba(0, 0, 0, 0.12);
-      --shadow-strong: rgba(0, 0, 0, 0.40);
-      --shadow-stronger: rgba(0, 0, 0, 0.42);
-      --inset-highlight: rgba(255, 255, 255, 0.04);
-      --surface-stroke-subtle: rgba(255, 255, 255, 0.04);
-      --surface-fill: rgba(255, 255, 255, 0.03);
-      --surface-fill-hover: rgba(255, 255, 255, 0.05);
-      --surface-fill-strong: rgba(255, 255, 255, 0.08);
-      --surface-fill-stronger: rgba(255, 255, 255, 0.14);
-      --surface-fill-strongest: rgba(255, 255, 255, 0.25);
-      --surface-fill-strongest-hover: rgba(255, 255, 255, 0.35);
-      --neutral-tint: rgba(255, 255, 255, 0.06);
-      --neutral-tint-soft: rgba(255, 255, 255, 0.05);
-      --neutral-border: rgba(255, 255, 255, 0.08);
-      --overlay-scrim: rgba(10, 10, 12, 0.68);
-      --modal-scrim: rgba(8, 10, 16, 0.66);
-      --focus-ring: rgba(48, 209, 88, 0.20);
-      --focus-ring-soft: rgba(48, 209, 88, 0.12);
-      --focus-ring-subtle: rgba(48, 209, 88, 0.08);
-      --info-ring: rgba(98, 188, 233, 0.35);
-      --muted-badge: rgba(142, 142, 147, 0.15);
-      --success-contrast: #0D0D0B;
-      --radius: 8px;
-      --radius-lg: 10px;
-      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-display: 'Instrument Serif', ui-serif, 'Iowan Old Style', Georgia, serif;
-      --font-mono: 'Geist Mono', 'SF Mono', 'Menlo', monospace;
-    }
-
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #F8F4ED;
-        --bg-elevated: #EFEBE2;
-        --bg-hover: #E8E2D8;
-        --border: rgba(0, 0, 0, 0.07);
-        --border-mid: rgba(0, 0, 0, 0.13);
-        --text: #1A1916;
-        --text-secondary: #8C8880;
-        --text-tertiary: #BDB9B0;
-        --accent: #C96B4E;
-        --accent-hover: #B85A3E;
-        --accent-soft: rgba(201, 107, 78, 0.10);
-        --red: #C0392B;
-        --red-bg: rgba(192, 57, 43, 0.12);
-        --green: #2E7D46;
-        --live: #2E7D46;
-        --purple: #8B5CF6;
-        --orange: #B8731E;
-        --purple-solid-soft: rgba(139, 92, 246, 0.58);
-        --purple-solid-strong: rgba(139, 92, 246, 0.72);
-        --accent-tint: rgba(201, 107, 78, 0.10);
-        --accent-tint-soft: rgba(201, 107, 78, 0.05);
-        --accent-border: rgba(201, 107, 78, 0.15);
-        --accent-border-strong: rgba(201, 107, 78, 0.28);
-        --green-tint: rgba(46, 125, 70, 0.10);
-        --green-tint-soft: rgba(46, 125, 70, 0.06);
-        --green-border: rgba(46, 125, 70, 0.14);
-        --green-border-soft: rgba(46, 125, 70, 0.10);
-        --green-glow: rgba(46, 125, 70, 0.22);
-        --green-glow-soft: rgba(46, 125, 70, 0.14);
-        --green-solid-soft: rgba(46, 125, 70, 0.72);
-        --green-solid-strong: rgba(46, 125, 70, 0.84);
-        --red-tint: rgba(192, 57, 43, 0.10);
-        --red-tint-soft: rgba(192, 57, 43, 0.05);
-        --red-border: rgba(192, 57, 43, 0.10);
-        --red-border-strong: rgba(192, 57, 43, 0.24);
-        --red-border-stronger: rgba(192, 57, 43, 0.38);
-        --red-tint-strong: rgba(192, 57, 43, 0.15);
-        --red-tint-stronger: rgba(192, 57, 43, 0.20);
-        --red-glow-soft: rgba(192, 57, 43, 0.06);
-        --orange-tint: rgba(184, 115, 30, 0.10);
-        --orange-tint-soft: rgba(184, 115, 30, 0.06);
-        --orange-border: rgba(184, 115, 30, 0.16);
-        --shadow-color: rgba(0, 0, 0, 0.12);
-        --shadow-soft: rgba(0, 0, 0, 0.08);
-        --shadow-strong: rgba(0, 0, 0, 0.16);
-        --shadow-stronger: rgba(0, 0, 0, 0.18);
-        --inset-highlight: rgba(0, 0, 0, 0.03);
-        --surface-stroke-subtle: rgba(0, 0, 0, 0.06);
-        --surface-fill: rgba(0, 0, 0, 0.03);
-        --surface-fill-hover: rgba(0, 0, 0, 0.05);
-        --surface-fill-strong: rgba(0, 0, 0, 0.08);
-        --surface-fill-stronger: rgba(0, 0, 0, 0.12);
-        --surface-fill-strongest: rgba(0, 0, 0, 0.18);
-        --surface-fill-strongest-hover: rgba(0, 0, 0, 0.24);
-        --neutral-tint: rgba(0, 0, 0, 0.06);
-        --neutral-tint-soft: rgba(0, 0, 0, 0.04);
-        --neutral-border: rgba(0, 0, 0, 0.10);
-        --overlay-scrim: rgba(248, 244, 237, 0.78);
-        --modal-scrim: rgba(248, 244, 237, 0.82);
-        --focus-ring: rgba(201, 107, 78, 0.16);
-        --focus-ring-soft: rgba(201, 107, 78, 0.10);
-        --focus-ring-subtle: rgba(201, 107, 78, 0.07);
-        --info-ring: rgba(98, 188, 233, 0.24);
-        --muted-badge: rgba(140, 136, 128, 0.16);
-        --success-contrast: #F8F4ED;
-      }
-    }
+    /* Tokens :root (light mode Artemis + dark mode override) sont chargés depuis
+       styles/theme-tokens.css via <link> dans le <head>. Ne PAS redéclarer ici. */
 
     :focus-visible {
       outline: 2px solid var(--accent);
@@ -622,25 +437,44 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       min-width: 0;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(34, 38, 42, 0.12);
     }
 
     .brand-copy {
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
     .brand-label {
-      font-size: 18px;
-      font-family: var(--font-display);
-      font-weight: 400;
-      letter-spacing: -0.3px;
+      font-size: 16px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      letter-spacing: 0.02em;
       color: var(--text);
-      line-height: 1;
+      line-height: 1.1;
+      text-transform: uppercase;
     }
 
     .brand-sub {
-      display: none;
+      display: block;
+      font-size: 11px;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.2;
+      letter-spacing: 0.01em;
     }
 
     .header-actions {
@@ -2222,6 +2056,164 @@
          Avec le header en stack vertical, il a maintenant la place. */
       word-wrap: break-word;
       line-height: 1.3;
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Artemis : menu ⋯ à côté du titre de la popup détail (Renommer). */
+    .detail-title-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .detail-title-menu {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .detail-title-menu-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    }
+
+    .detail-title-menu-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-mid);
+      color: var(--text);
+    }
+
+    .detail-title-menu-btn[aria-expanded="true"] {
+      background: var(--bg-hover);
+      border-color: var(--accent-border);
+      color: var(--accent);
+    }
+
+    .detail-title-menu-popup {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 220px;
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      border-radius: 10px;
+      box-shadow: var(--palette-shadow);
+      padding: 4px;
+      z-index: 120;
+    }
+
+    .detail-title-menu-popup[hidden] {
+      display: none;
+    }
+
+    .detail-title-menu-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .detail-title-menu-item:hover {
+      background: var(--row-hover);
+    }
+
+    /* Artemis : modale renommage (dans la popup détail, au-dessus du scroll). */
+    .rename-modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--modal-scrim);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .rename-modal-overlay[hidden] {
+      display: none;
+    }
+
+    .rename-modal {
+      width: min(420px, 100%);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-mid);
+      border-radius: 14px;
+      box-shadow: var(--palette-shadow);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .rename-modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .rename-modal-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .rename-modal-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      -webkit-user-select: text;
+      user-select: text;
+      margin-top: 4px;
+    }
+
+    .rename-modal-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    .rename-modal-error {
+      font-size: 12px;
+      color: var(--red);
+      padding: 6px 10px;
+      background: var(--red-tint);
+      border-radius: 6px;
+      border: 1px solid var(--red-border);
+    }
+
+    .rename-modal-error[hidden] {
+      display: none;
+    }
+
+    .rename-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 4px;
     }
 
     .detail-meta {
@@ -2584,18 +2576,37 @@
 
     .about-brand {
       display: flex;
-      align-items: center;
-      gap: 14px;
+      align-items: flex-start;
+      gap: 16px;
       min-width: 0;
     }
 
-    .about-copy h2 {
-      font-size: 24px;
+    .about-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(34, 38, 42, 0.14);
+    }
+
+    .about-tagline {
       font-family: var(--font-display);
-      font-weight: 400;
+      font-style: italic;
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 8px !important;
+      letter-spacing: 0.01em;
+    }
+
+    .about-copy h2 {
+      font-size: 22px;
+      font-family: var(--font-sans);
+      font-weight: 700;
       line-height: 1;
-      letter-spacing: -0.4px;
-      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 4px;
     }
 
     .about-copy p {
@@ -2984,10 +2995,13 @@
       font-weight: 600;
     }
 
+    /* Artemis : "Note rapide" + "Assistant" côte à côte, prenant
+       ensemble toute la largeur disponible du footer (50/50 sur 2
+       colonnes). */
     .footer-action-secondary {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 4px;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
     }
 
     .footer-actions .btn {
@@ -3022,8 +3036,11 @@
         grid-template-columns: 1fr;
       }
 
+      /* Artemis : on force 2 colonnes (pas 3 comme l'upstream qui
+         prévoyait Direct + Note rapide + Assistant). Ici Direct est
+         hidden donc les 2 boutons restants doivent prendre 50/50. */
       .footer-action-secondary {
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
       }
     }
 
@@ -3571,7 +3588,9 @@
     }
 
     .footer.capture-mode .footer-action-secondary {
-      grid-template-columns: 1fr 1fr 1fr;
+      /* Artemis : 2 colonnes — Direct est hidden dans ce fork, voir
+         note sur la règle principale plus haut. */
+      grid-template-columns: 1fr 1fr;
     }
 
     .btn {
@@ -3818,9 +3837,10 @@
     <!-- Header -->
     <div class="header">
       <div class="brand">
+        <img src="assets/logo-paysages.png" alt="Artemis Paysages" class="brand-logo">
         <div class="brand-copy">
-          <div class="brand-label">Minutes</div>
-          <div class="brand-sub">Conversation memory for humans and agents</div>
+          <div class="brand-label">Artemis Paysages</div>
+          <div class="brand-sub">Enregistreur de réunion · L'art d'embellir vos extérieurs</div>
         </div>
       </div>
       <div class="header-actions">
@@ -3871,7 +3891,9 @@
         <button class="btn btn-secondary btn-sm" id="btn-stop-live">Arrêter le direct</button>
       </div>
       <!-- Artemis: rolling transcript display (upstream had no panel — text only went to JSONL) -->
-      <div class="live-transcript-stream" id="live-transcript-stream" hidden>
+      <!-- Artemis: panneau live-transcript désactivé (bouton Direct retiré). Éléments
+           conservés hidden pour que les handlers JS ne produisent pas de NPE. -->
+      <div class="live-transcript-stream" id="live-transcript-stream" hidden aria-hidden="true" style="display:none !important">
         <div class="live-transcript-empty" id="live-transcript-empty">En attente de la première phrase…</div>
         <div class="live-transcript-lines" id="live-transcript-lines"></div>
       </div>
@@ -3938,7 +3960,7 @@
       <div class="call-detected-info">
         <div class="call-detected-title" id="call-detected-title">Appel détecté</div>
         <div class="call-detected-subtitle" id="call-detected-subtitle">Prêt à enregistrer cet appel</div>
-        <div class="call-detected-detail" id="call-detected-detail">Minutes reste prêt tant que cet appel est actif.
+        <div class="call-detected-detail" id="call-detected-detail">Artemis Paysages reste prêt tant que cet appel est actif.
         </div>
         <div class="call-detected-health">
           <span class="call-health-chip" id="call-health-mic">Micro en attente</span>
@@ -4059,9 +4081,9 @@
           </select>
         </div>
         <div class="footer-action-secondary">
-          <button class="btn btn-secondary" id="btn-live"
-            title="Démarrer la transcription en direct — demande un coaching à ton assistant"
-            aria-label="Démarrer la transcription en direct">Direct</button>
+          <!-- Artemis: bouton "Direct" (transcription live) retiré à la demande produit.
+               Le handler JS reste chargé pour éviter les NPE mais l'élément n'est plus rendu. -->
+          <button class="btn btn-secondary" id="btn-live" hidden aria-hidden="true">Direct</button>
           <button class="btn btn-secondary" id="btn-quick-thought">Note rapide</button>
           <button class="btn btn-secondary" id="btn-update-debug-launch" hidden>Debug MàJ</button>
           <button class="btn btn-secondary" id="btn-assistant" aria-expanded="false">Assistant <span class="recall-nudge"
@@ -4128,7 +4150,21 @@
       </button>
       <div class="detail-header">
         <div class="detail-header-copy">
-          <div class="detail-title" id="detail-title">Rendez-vous</div>
+          <div class="detail-title-row">
+            <div class="detail-title" id="detail-title">Rendez-vous</div>
+            <!-- Artemis : menu ⋯ à côté du titre pour renommer le RDV / la note. -->
+            <div class="detail-title-menu" id="detail-title-menu-wrapper">
+              <button class="detail-title-menu-btn" id="btn-detail-title-menu"
+                aria-label="Plus d'options"
+                title="Plus d'options"
+                aria-haspopup="true" aria-expanded="false">&#x22EF;</button>
+              <div class="detail-title-menu-popup" id="detail-title-menu-popup" hidden role="menu">
+                <button class="detail-title-menu-item" id="btn-rename-meeting" role="menuitem">
+                  Renommer
+                </button>
+              </div>
+            </div>
+          </div>
           <div class="detail-meta" id="detail-meta"></div>
         </div>
         <div class="detail-actions">
@@ -4139,6 +4175,21 @@
         </div>
       </div>
       <div class="detail-feedback" id="detail-feedback" hidden></div>
+
+      <!-- Artemis : modale de renommage (plus fiable que window.prompt dans Tauri WebView). -->
+      <div class="rename-modal-overlay" id="rename-modal-overlay" hidden>
+        <div class="rename-modal" role="dialog" aria-modal="true" aria-labelledby="rename-modal-title">
+          <div class="rename-modal-title" id="rename-modal-title">Renommer</div>
+          <div class="rename-modal-sub">Le fichier markdown et son titre seront mis à jour.</div>
+          <input type="text" class="rename-modal-input" id="rename-modal-input"
+            placeholder="Nouveau titre" autocomplete="off" maxlength="200">
+          <div class="rename-modal-error" id="rename-modal-error" hidden></div>
+          <div class="rename-modal-actions">
+            <button class="btn btn-secondary btn-sm" id="rename-modal-cancel">Annuler</button>
+            <button class="btn btn-primary btn-sm" id="rename-modal-save">Enregistrer</button>
+          </div>
+        </div>
+      </div>
       <div class="detail-scroll" id="detail-scroll">
         <div class="detail-empty">Sélectionne un rendez-vous pour voir la transcription et les notes.</div>
       </div>
@@ -4148,7 +4199,7 @@
   <div class="artifact-template-overlay" id="artifact-template-overlay">
     <div class="artifact-template-card" role="dialog" aria-modal="true" aria-labelledby="artifact-template-title">
       <div class="artifact-template-title" id="artifact-template-title">Créer un brouillon</div>
-      <div class="artifact-template-sub">Choisis le document que Minutes doit générer depuis cette conversation. Il s'ouvre
+      <div class="artifact-template-sub">Choisis le document qu'Artemis Paysages doit générer depuis ce rendez-vous. Il s'ouvre
         immédiatement en mode source à côté de l'assistant.</div>
       <div class="artifact-template-list">
         <button class="artifact-template-option" data-artifact-kind="debrief-memo">
@@ -4184,7 +4235,7 @@
       <div class="readiness-header">
         <div>
           <div class="readiness-title" id="readiness-title">État du système</div>
-          <div class="readiness-sub">Cette vue ne remonte que ce que Minutes peut vérifier à l'instant. Les éléments
+          <div class="readiness-sub">Cette vue ne remonte que ce qu'Artemis Paysages peut vérifier à l'instant. Les éléments
             optionnels restent optionnels, et les états inconnus ne sont jamais masqués derrière une fausse certitude.</div>
         </div>
         <button class="btn btn-secondary btn-sm" id="btn-readiness-close">Fermer</button>
@@ -4232,10 +4283,12 @@
     <div class="about-card" role="dialog" aria-modal="true" aria-labelledby="about-title">
       <div class="about-top">
         <div class="about-brand">
+          <img src="assets/logo-paysages.png" alt="Artemis Paysages" class="about-logo">
           <div class="about-copy">
-            <h2 id="about-title">Minutes</h2>
-            <p>Mémoire de conversation locale d'abord, utile dans le tray, le terminal et les workflows d'assistant.
-            </p>
+            <h2 id="about-title">Artemis Paysages</h2>
+            <p class="about-tagline">L'art d'embellir vos extérieurs</p>
+            <p>Enregistreur de réunion au service de vos rendez-vous clients — transcription, analyse ProcessCom
+              et compte-rendu structuré, entièrement sur votre poste.</p>
           </div>
         </div>
         <button class="btn btn-secondary btn-sm" id="btn-about-close">Fermer</button>
@@ -4243,29 +4296,29 @@
       <div class="about-grid">
         <div class="about-item">
           <div class="about-item-title">Capture</div>
-          <div class="about-item-body">RDV, mémos et pensées deviennent du markdown structuré au lieu de disparaître
-            dans l'état d'une app.</div>
+          <div class="about-item-body">Vos rendez-vous paysagers deviennent automatiquement un compte-rendu markdown
+            structuré, prêt à partager avec votre équipe.</div>
         </div>
         <div class="about-item">
-          <div class="about-item-title">Recherche</div>
-          <div class="about-item-body">Timeline, transcription, actions et contexte restent requêtables depuis le
-            bureau, le CLI et les surfaces MCP.</div>
+          <div class="about-item-title">Analyse ProcessCom</div>
+          <div class="about-item-body">Chaque prospect est profilé selon sa typologie de communication — pour mieux
+            adapter votre devis, votre relance et votre suivi.</div>
         </div>
         <div class="about-item">
-          <div class="about-item-title">Local d'abord</div>
-          <div class="about-item-body">La capture audio et le stockage restent sur ta machine, sauf si tu optes
-            explicitement pour des services de modèles externes.</div>
+          <div class="about-item-title">Confidentialité locale</div>
+          <div class="about-item-body">L'enregistrement et la transcription restent sur votre poste. Seule l'analyse
+            finale est traitée par l'IA, sous votre contrôle.</div>
         </div>
         <div class="about-item">
-          <div class="about-item-title">Natif assistant</div>
-          <div class="about-item-body">Conçu pour bien fonctionner avec Claude Desktop, Claude Code, Cowork, Codex et
-            autres assistants qui appellent des outils.</div>
+          <div class="about-item-title">Assistant intégré</div>
+          <div class="about-item-body">Un chatbot embarqué vous aide à préparer la relance, le brief terrain ou le
+            mémo de décision — directement depuis votre compte-rendu.</div>
         </div>
       </div>
       <div class="about-footer" id="about-tray-copy">
-        Minutes est open source, basé sur du markdown, et conçu pour que l'artefact reste utile même en-dehors de cette
-        app. Les actions du tray copient le dernier résumé ou la transcription et tentent de les coller dans ton app
-        précédente quand l'automation macOS le permet.
+        Artemis Paysages — votre Interlocuteur Unique pour tous vos extérieurs. Cet outil est conçu pour que vos
+        comptes-rendus restent utiles bien au-delà de l'application : fichiers markdown ouverts, archivables et
+        consultables depuis n'importe quel éditeur.
       </div>
       <div class="about-controls">
         <div class="about-controls-copy">
@@ -4275,7 +4328,7 @@
       </div>
       <div class="about-controls">
         <div class="about-controls-copy">
-          Jouer les sons Minutes pour les événements de démarrage, arrêt, fin et erreur.
+          Jouer les sons Artemis Paysages pour les événements de démarrage, arrêt, fin et erreur.
         </div>
         <button class="btn btn-secondary btn-sm toggle-btn" id="btn-toggle-cues">Activé</button>
       </div>
@@ -4287,7 +4340,7 @@
           </div>
           <select class="shortcut-select" id="select-hotkey-shortcut"></select>
           <div class="about-controls-meta" id="hotkey-status">Désactivé par défaut. Si le raccourci est déjà pris par
-            une autre app, Minutes le laisse désactivé.</div>
+            une autre app, Artemis Paysages le laisse désactivé.</div>
         </div>
         <button class="btn btn-secondary btn-sm toggle-btn" id="btn-toggle-hotkey">Désactivé</button>
       </div>
@@ -4314,7 +4367,7 @@
           <button class="btn btn-secondary btn-sm toggle-btn" id="settings-cues">Activé</button>
         </div>
         <div class="about-controls">
-          <div class="about-controls-copy">Ouvrir Minutes au démarrage</div>
+          <div class="about-controls-copy">Ouvrir Artemis Paysages au démarrage</div>
           <button class="btn btn-secondary btn-sm toggle-btn" id="settings-autostart">Désactivé</button>
         </div>
         <!-- Quick Thought shortcut (unified recorder) -->
@@ -4604,7 +4657,7 @@
         <div class="about-controls">
           <div class="about-controls-group">
             <div class="about-controls-copy">Temps de repos</div>
-            <div class="about-controls-meta">Minutes à attendre avant de ré-activer la détection d'appel.</div>
+            <div class="about-controls-meta">Délai avant qu'Artemis Paysages ré-active la détection d'appel.</div>
             <input type="number" id="settings-call-detection-cooldown" min="0" class="settings-field">
           </div>
         </div>
@@ -5031,8 +5084,8 @@
 
       if (aboutTrayCopy) {
         aboutTrayCopy.textContent = desktopCapabilities.supportsTrayArtifactCopy
-          ? 'Minutes is open source, markdown-backed, and designed so the artifact remains valuable even outside this app. Power-user tray actions copy the latest summary or transcript and try to paste it into your previous app when macOS automation allows it.'
-          : 'Minutes is open source, markdown-backed, and designed so the artifact remains valuable even outside this app. This desktop build focuses on recording, transcription, search, and Recall today; tray copy/paste automation remains macOS-only for now.';
+          ? 'Artemis Paysages est basé sur du markdown et conçu pour que votre compte-rendu reste utile en-dehors de cette app. Les actions du tray copient le dernier résumé ou la transcription et tentent de les coller dans votre app précédente quand l\'automation macOS le permet.'
+          : 'Artemis Paysages est basé sur du markdown et conçu pour que votre compte-rendu reste utile en-dehors de cette app. Cette version desktop se concentre sur l\'enregistrement, la transcription et la recherche. Le copier-coller automatique depuis le tray reste exclusif à macOS pour l\'instant.';
       }
     }
 
@@ -5150,7 +5203,7 @@
       if (!status) {
         return {
           summary: 'Statut Parakeet indisponible.',
-          detail: 'Minutes could not determine whether the selected Parakeet backend is usable yet.',
+          detail: 'Artemis Paysages n\'a pas pu déterminer si le moteur Parakeet sélectionné est utilisable.',
         };
       }
 
@@ -5820,7 +5873,7 @@
       setHotkeyStatus(
         enabled
           ? `Enabled for ${hotkeyShortcut}. Hold to record, or tap to lock and tap again to stop.`
-          : 'Off by default. If another app already owns the shortcut, Minutes leaves it disabled.',
+          : 'Désactivé par défaut. Si une autre app utilise déjà ce raccourci, Artemis Paysages le laisse désactivé.',
         false
       );
     }
@@ -6092,6 +6145,142 @@
       } catch (e) {
         console.error('Quick thought:', e);
       }
+    });
+
+    // ── Menu ⋯ à côté du titre de la popup détail (Artemis) ──
+    // Ouvre/ferme un petit popup avec l'option "Renommer".
+    const detailTitleMenuBtn = document.getElementById('btn-detail-title-menu');
+    const detailTitleMenuPopup = document.getElementById('detail-title-menu-popup');
+
+    function closeDetailTitleMenu() {
+      detailTitleMenuPopup.hidden = true;
+      detailTitleMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    function openDetailTitleMenu() {
+      detailTitleMenuPopup.hidden = false;
+      detailTitleMenuBtn.setAttribute('aria-expanded', 'true');
+    }
+
+    detailTitleMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (detailTitleMenuPopup.hidden) {
+        openDetailTitleMenu();
+      } else {
+        closeDetailTitleMenu();
+      }
+    });
+
+    // Clic ailleurs → ferme le menu
+    document.addEventListener('click', (e) => {
+      if (!detailTitleMenuPopup.hidden &&
+          !detailTitleMenuPopup.contains(e.target) &&
+          e.target !== detailTitleMenuBtn) {
+        closeDetailTitleMenu();
+      }
+    });
+
+    // Escape → ferme le menu
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !detailTitleMenuPopup.hidden) {
+        closeDetailTitleMenu();
+      }
+    });
+
+    // ── Rename meeting (Artemis) — modale HTML inline ──
+    const renameOverlay = document.getElementById('rename-modal-overlay');
+    const renameInput = document.getElementById('rename-modal-input');
+    const renameError = document.getElementById('rename-modal-error');
+    const renameSaveBtn = document.getElementById('rename-modal-save');
+    const renameCancelBtn = document.getElementById('rename-modal-cancel');
+    const renameTitleEl = document.getElementById('rename-modal-title');
+
+    function openRenameModal() {
+      const pathToRename = currentMeetingPath;
+      if (!pathToRename) return;
+      const isMemo = currentMeetingDetail && currentMeetingDetail.content_type === 'memo';
+      renameTitleEl.textContent = isMemo ? 'Renommer la note' : 'Renommer le rendez-vous';
+      const currentTitle = (currentMeetingDetail && currentMeetingDetail.title) || '';
+      renameInput.value = currentTitle;
+      renameError.hidden = true;
+      renameError.textContent = '';
+      renameOverlay.hidden = false;
+      // Focus + sélection du contenu — léger timeout pour laisser le DOM se
+      // peindre avant focus (évite un focus perdu dans certains WebView).
+      setTimeout(() => {
+        renameInput.focus();
+        renameInput.select();
+      }, 30);
+    }
+
+    function closeRenameModal() {
+      renameOverlay.hidden = true;
+      renameError.hidden = true;
+      renameError.textContent = '';
+    }
+
+    async function performRename() {
+      const pathToRename = currentMeetingPath;
+      if (!pathToRename) {
+        renameError.textContent = 'Aucun rendez-vous sélectionné.';
+        renameError.hidden = false;
+        return;
+      }
+      const trimmed = renameInput.value.trim();
+      if (!trimmed) {
+        renameError.textContent = 'Le titre ne peut pas être vide.';
+        renameError.hidden = false;
+        return;
+      }
+      const currentTitle = (currentMeetingDetail && currentMeetingDetail.title) || '';
+      if (trimmed === currentTitle.trim()) {
+        closeRenameModal();
+        return;
+      }
+      renameSaveBtn.disabled = true;
+      renameError.hidden = true;
+      try {
+        const newPath = await invoke('cmd_rename_meeting', {
+          path: pathToRename,
+          newTitle: trimmed,
+        });
+        closeRenameModal();
+        if (newPath && newPath !== pathToRename) {
+          currentMeetingPath = newPath;
+        }
+        await loadMeetings();
+        await openMeetingDetail(newPath || pathToRename);
+      } catch (e) {
+        console.error('Rename:', e);
+        renameError.textContent = 'Impossible de renommer : ' + String(e);
+        renameError.hidden = false;
+      } finally {
+        renameSaveBtn.disabled = false;
+      }
+    }
+
+    document.getElementById('btn-rename-meeting').addEventListener('click', () => {
+      closeDetailTitleMenu();
+      openRenameModal();
+    });
+
+    renameSaveBtn.addEventListener('click', performRename);
+    renameCancelBtn.addEventListener('click', closeRenameModal);
+
+    // Enter → save, Escape → cancel (seulement quand la modale est ouverte)
+    renameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performRename();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeRenameModal();
+      }
+    });
+
+    // Clic sur l'overlay (hors de la modale elle-même) → ferme
+    renameOverlay.addEventListener('click', (e) => {
+      if (e.target === renameOverlay) closeRenameModal();
     });
 
     // ── Delete meeting ──
@@ -7168,7 +7357,7 @@
       const parakeetIssues = (parakeet?.issues || []).map(issue => `<li>${escapeHtml(issue)}</li>`).join('');
       const modelStepBody = setupEngine === 'parakeet'
         ? `
-                <p>Minutes est configuré pour utiliser Parakeet, qui nécessite le binaire local <code>parakeet</code> et les modèles convertis.</p>
+                <p>Artemis Paysages est configuré pour utiliser Parakeet, qui nécessite le binaire local <code>parakeet</code> et les modèles convertis.</p>
                 ${parakeetIssues ? `<ul class="onboarding-list">${parakeetIssues}</ul>` : ''}
                 <div class="model-options">
                   <button class="btn btn-primary btn-sm" id="btn-open-parakeet-guide-onboarding">Ouvrir le guide Parakeet</button>
@@ -7176,11 +7365,12 @@
                 </div>
                 <div class="about-controls-meta">${escapeHtml(parakeet?.setupCommand || 'minutes setup --parakeet')}<\/div>`
         : `
-                <p>Choisis une taille de modèle :</p>
+                <p>Choisissez une taille de modèle. <strong>Large v3 Turbo</strong> est recommandé pour Artemis : la meilleure précision en français pour les rendez-vous commerciaux, rapide sur les Mac M1/M2/M3 :</p>
                 <div class="model-options">
-                  <button class="btn btn-secondary btn-sm model-btn" data-model="tiny">Tiny (75 Mo, rapide)</button>
-                  <button class="btn btn-primary btn-sm model-btn" data-model="base">Base (141 Mo, recommandé)</button>
-                  <button class="btn btn-secondary btn-sm model-btn" data-model="small">Small (466 Mo, meilleure précision)</button>
+                  <button class="btn btn-secondary btn-sm model-btn" data-model="small">Small (466 Mo, rapide, précision moyenne)</button>
+                  <button class="btn btn-secondary btn-sm model-btn" data-model="medium">Medium (1,5 Go, bon compromis)</button>
+                  <button class="btn btn-primary btn-sm model-btn" data-model="large-v3-turbo">Large v3 Turbo (1,6 Go, recommandé)</button>
+                  <button class="btn btn-secondary btn-sm model-btn" data-model="large-v3">Large v3 (3,1 Go, qualité maximale, plus lent)</button>
                 </div>
                 <div class="download-progress ui-hidden">
                   <div class="progress-bar"><div class="progress-fill"></div></div>
@@ -7190,8 +7380,9 @@
       empty.className = 'empty-state';
       empty.innerHTML = `
         <div class="onboarding-content">
-          <h2>Bienvenue sur Minutes</h2>
-          <p class="onboarding-sub">Télécharge le modèle une fois, puis fais un court enregistrement de test. Dès qu'il est sauvegardé, cette vue devient ta vraie liste de rendez-vous.</p>
+          <h2>Bienvenue sur Artemis Paysages</h2>
+          <p class="onboarding-tagline">L'art d'embellir vos extérieurs</p>
+          <p class="onboarding-sub">Téléchargez le modèle une fois, puis faites un court enregistrement de test. Dès qu'il est sauvegardé, cette vue devient votre vraie liste de rendez-vous clients.</p>
           <div class="onboarding-steps">
             <div class="onboarding-step" id="step-model">
               <div class="step-header">
@@ -7210,7 +7401,7 @@
                 <span class="step-status" id="step-first-artifact-status"></span>
               </div>
               <div class="step-body">
-                <p>Fais un test rapide de 10 secondes. Dis une phrase, arrête, et laisse Minutes produire son premier compte-rendu.</p>
+                <p>Faites un test rapide de 10 secondes. Prononcez une phrase, arrêtez, et laissez Artemis Paysages produire son premier compte-rendu.</p>
                 <button class="btn btn-primary" id="btn-start-first-recording">Enregistrer un test de 10 secondes</button>
               </div>
             </div>
@@ -8246,7 +8437,7 @@
           enabled: false,
           pending: false,
           keycode: dictationKeycode,
-          message: 'Minutes is still waiting for macOS to start the native hotkey. Confirm Minutes is enabled in System Settings > Privacy & Security > Input Monitoring, then try again.',
+          message: 'Artemis Paysages attend toujours que macOS démarre le raccourci natif. Vérifiez qu\'Artemis Paysages est autorisé dans Réglages Système > Confidentialité et sécurité > Surveillance des entrées, puis réessayez.',
         });
       }, 4000);
     }
@@ -8358,7 +8549,7 @@
           hotkeyRecordBtn.style.color = '';
           const status = document.getElementById('settings-dictation-hotkey-status');
           status.style.color = 'var(--red)';
-          status.textContent = `Minutes cannot bind ${e.key || e.code} yet. Try a letter, number, function key, arrow key, Tab, Escape, Return, Space, or Delete.`;
+          status.textContent = `Artemis Paysages ne peut pas encore associer ${e.key || e.code}. Essayez une lettre, un chiffre, une touche de fonction, une flèche, Tab, Échap, Entrée, Espace ou Suppr.`;
           return;
         }
 
@@ -8375,7 +8566,7 @@
           console.error('Save dictation hotkey:', error);
           const status = document.getElementById('settings-dictation-hotkey-status');
           status.style.color = 'var(--red)';
-          status.textContent = `Minutes couldn't save ${name} as the dictation hotkey.`;
+          status.textContent = `Artemis Paysages n'a pas pu enregistrer ${name} comme raccourci de dictée.`;
           return;
         }
 
@@ -8835,7 +9026,7 @@
       };
       callTitle.textContent = `${app_name} call detected`;
       callSubtitle.textContent = 'Prêt à enregistrer cet appel';
-      callDetail.textContent = 'Minutes will stay ready while this call is active until you start recording or dismiss this session.';
+      callDetail.textContent = 'Artemis Paysages reste prêt tant que cet appel est actif, jusqu\'à ce que vous démarriez l\'enregistrement ou fermiez cette session.';
       setCallHealthChip(callHealthMic, 'Mic waiting', false);
       setCallHealthChip(callHealthAudio, 'Audio d\'appel en attente', false);
       callBanner.classList.add('active');
@@ -9241,7 +9432,7 @@
     // ── Listen for recall:expand events from Rust backend ──
     currentWindow.listen('recall:expand', (event) => {
       const { title, mode } = event.payload;
-      const context = (title || '').replace('Minutes Assistant', '').replace('Discussing: ', '').trim();
+      const context = (title || '').replace('Assistant Artemis', '').replace('Minutes Assistant', '').replace('Discussing: ', '').replace('Discussion : ', '').trim();
       if (mode === 'meeting') {
         setRecallPhase('debrief', context);
       } else {

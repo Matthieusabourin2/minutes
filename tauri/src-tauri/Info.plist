@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Minutes needs microphone access to record meetings, voice memos, and your side of call audio.</string>
+    <string>Artemis Paysages a besoin de l'accès au microphone pour enregistrer vos rendez-vous clients et vos mémos vocaux.</string>
     <key>NSScreenCaptureUsageDescription</key>
-    <string>Minutes uses screen and system-audio capture for call recording and can optionally capture screenshots for visual context during recordings.</string>
+    <string>Artemis Paysages utilise la capture écran et audio système pour enregistrer vos visioconférences et peut éventuellement capturer des captures d'écran pour documenter le contexte visuel d'un rendez-vous.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>Minutes shows upcoming meetings in the menu bar so you can start recording with one click.</string>
+    <string>Artemis Paysages affiche vos prochains rendez-vous dans la barre de menu afin que vous puissiez démarrer un enregistrement en un clic.</string>
 </dict>
 </plist>

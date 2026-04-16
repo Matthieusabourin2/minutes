@@ -437,7 +437,55 @@ const OPENAI_TITLE_MODEL: &str = OPENAI_SUMMARY_MODEL;
 // `resolve_anthropic_key` prefers `[summarization].api_key` from
 // config.toml, then falls back to `ANTHROPIC_API_KEY` env var.
 
+// Artemis/Catalia : mode "memo" — activé par le pipeline juste avant l'appel
+// à summarize_with_screens quand le job est un memo (note rapide / voice memo).
+// Thread-local pour ne pas polluer les 15 sites internes avec un paramètre
+// supplémentaire. Voir `set_memo_mode` ci-dessous.
+std::thread_local! {
+    static SUMMARIZE_AS_MEMO: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Active (ou désactive) le mode memo pour le thread courant.
+/// Quand `true`, `resolve_system_prompt` prend `memo_prompt` au lieu de
+/// `custom_prompt`. Le caller (typiquement `pipeline.rs`) doit penser à
+/// remettre `false` après le summarize.
+pub fn set_memo_mode(active: bool) {
+    SUMMARIZE_AS_MEMO.with(|c| c.set(active));
+}
+
+/// RAII guard : passe en memo mode à la construction, remet à `false` au drop.
+/// Pratique pour ne pas oublier le reset dans les chemins d'erreur.
+pub struct MemoModeGuard;
+
+impl MemoModeGuard {
+    pub fn new() -> Self {
+        set_memo_mode(true);
+        Self
+    }
+}
+
+impl Drop for MemoModeGuard {
+    fn drop(&mut self) {
+        set_memo_mode(false);
+    }
+}
+
 fn resolve_system_prompt(config: &Config) -> &str {
+    let is_memo = SUMMARIZE_AS_MEMO.with(|c| c.get());
+
+    // En mode memo : memo_prompt (si défini) → custom_prompt (fallback) → SYSTEM_PROMPT
+    // En mode normal : custom_prompt (si défini) → SYSTEM_PROMPT
+    if is_memo {
+        if let Some(prompt) = config
+            .summarization
+            .memo_prompt
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+        {
+            return prompt;
+        }
+    }
+
     config
         .summarization
         .custom_prompt
@@ -833,7 +881,7 @@ fn write_agent_prompt_file(
     use std::time::{SystemTime, UNIX_EPOCH};
 
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
-    let base_dir = home.join(".minutes").join("tmp");
+    let base_dir = home.join(".artemis-paysages").join("tmp");
     std::fs::create_dir_all(&base_dir)?;
     #[cfg(unix)]
     {
@@ -2307,7 +2355,7 @@ PARTICIPANTS:
         assert_eq!(invocation.args[2], "--file");
         assert!(invocation.stdin_payload.is_none());
         let prompt_path = invocation.cleanup_path.expect("prompt path");
-        assert!(prompt_path.starts_with(dirs::home_dir().unwrap().join(".minutes").join("tmp")));
+        assert!(prompt_path.starts_with(dirs::home_dir().unwrap().join(".artemis-paysages").join("tmp")));
         let file_contents = std::fs::read_to_string(&prompt_path).unwrap();
         assert_eq!(file_contents, "sensitive prompt");
         std::fs::remove_file(prompt_path).unwrap();
@@ -2316,7 +2364,7 @@ PARTICIPANTS:
     #[test]
     fn write_agent_prompt_file_creates_private_minutes_temp_file() {
         let prompt_path = write_agent_prompt_file("opencode", "top secret").unwrap();
-        assert!(prompt_path.starts_with(dirs::home_dir().unwrap().join(".minutes").join("tmp")));
+        assert!(prompt_path.starts_with(dirs::home_dir().unwrap().join(".artemis-paysages").join("tmp")));
         let contents = std::fs::read_to_string(&prompt_path).unwrap();
         assert_eq!(contents, "top secret");
         #[cfg(unix)]

@@ -1,374 +1,528 @@
+/*
+ * Artemis Paysages — Design System Tokens
+ * Source of truth : skill artemis-paysages-design-system
+ * Brand : sous-marque "Paysages" (olive #7B9237 + icône lotus)
+ * Default theme : LIGHT (cream #F8F6F1) — fidèle au positionnement naturel Artemis
+ * Override : prefers-color-scheme: dark + [data-theme='dark']
+ */
+
+/* ==================================================================
+   Fonts Artemis — embarquées (Google Fonts licence OFL, zéro réseau)
+   Montserrat remplace Gotham (propriétaire)
+   EB Garamond Italic remplace Mrs Eaves Italic (propriétaire)
+   Paths sont relatifs à la feuille CSS → ../fonts/
+   ================================================================== */
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/Montserrat-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/Montserrat-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/Montserrat-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/Montserrat-Bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/EBGaramond-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/EBGaramond-Italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/EBGaramond-MediumItalic.woff2') format('woff2');
+}
+
+/* JetBrains Mono — pour du mono plus lisible que Geist Mono */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/JetBrainsMono-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/JetBrainsMono-Medium.woff2') format('woff2');
+}
+
 :root {
   color-scheme: light dark;
 
-  --bg: #0d0d0b;
-  --bg-elevated: #141412;
-  --bg-hover: #1c1c1a;
-  --border: rgba(255, 255, 255, 0.06);
-  --border-mid: #2a2924;
-  --text: #e8e4da;
-  --text-primary: #e8e4da;
-  --text-secondary: #6b6760;
-  --text-tertiary: #3d3b38;
-  --accent: #30d158;
-  --accent-hover: #4ade70;
-  --accent-soft: rgba(48, 209, 88, 0.1);
-  --red: #ff453a;
-  --red-bg: rgba(255, 69, 58, 0.12);
-  --green: #30d158;
-  --live: #30d158;
-  --purple: #bf5af2;
-  --orange: #d4832a;
-  --purple-solid-soft: rgba(155, 133, 196, 0.7);
-  --purple-solid-strong: rgba(155, 133, 196, 0.85);
-  --accent-tint: rgba(48, 209, 88, 0.12);
-  --accent-tint-soft: rgba(48, 209, 88, 0.06);
-  --accent-border: rgba(48, 209, 88, 0.15);
-  --accent-border-strong: rgba(48, 209, 88, 0.4);
-  --green-tint: rgba(48, 209, 88, 0.12);
-  --green-tint-soft: rgba(48, 209, 88, 0.06);
-  --green-border: rgba(48, 209, 88, 0.12);
-  --green-border-soft: rgba(48, 209, 88, 0.08);
-  --green-ring: rgba(48, 209, 88, 0.18);
-  --green-glow: rgba(48, 209, 88, 0.28);
-  --green-glow-soft: rgba(48, 209, 88, 0.18);
-  --green-solid-soft: rgba(48, 209, 88, 0.7);
-  --green-solid-strong: rgba(48, 209, 88, 0.85);
-  --red-tint: rgba(255, 69, 58, 0.12);
-  --red-tint-soft: rgba(255, 69, 58, 0.06);
-  --red-border: rgba(255, 69, 58, 0.1);
-  --red-border-strong: rgba(255, 69, 58, 0.3);
-  --red-border-stronger: rgba(255, 69, 58, 0.5);
-  --red-tint-strong: rgba(255, 69, 58, 0.2);
-  --red-tint-stronger: rgba(255, 69, 58, 0.25);
-  --red-glow-soft: rgba(255, 69, 58, 0.04);
-  --orange-tint: rgba(212, 160, 60, 0.12);
-  --orange-tint-soft: rgba(212, 160, 60, 0.08);
-  --orange-border: rgba(212, 160, 60, 0.16);
-  --shadow-color: rgba(0, 0, 0, 0.34);
-  --shadow-soft: rgba(0, 0, 0, 0.12);
-  --shadow-strong: rgba(0, 0, 0, 0.4);
-  --shadow-stronger: rgba(0, 0, 0, 0.42);
-  --inset-highlight: rgba(255, 255, 255, 0.04);
-  --inset-shadow: rgba(0, 0, 0, 0.14);
-  --surface-stroke-subtle: rgba(255, 255, 255, 0.04);
-  --surface-fill: rgba(255, 255, 255, 0.03);
-  --surface-fill-hover: rgba(255, 255, 255, 0.05);
-  --surface-fill-strong: rgba(255, 255, 255, 0.08);
-  --surface-fill-stronger: rgba(255, 255, 255, 0.14);
-  --surface-fill-strongest: rgba(255, 255, 255, 0.25);
-  --surface-fill-strongest-hover: rgba(255, 255, 255, 0.35);
-  --neutral-tint: rgba(255, 255, 255, 0.06);
-  --neutral-tint-soft: rgba(255, 255, 255, 0.05);
-  --neutral-border: rgba(255, 255, 255, 0.08);
-  --overlay-scrim: rgba(10, 10, 12, 0.68);
-  --modal-scrim: rgba(8, 10, 16, 0.66);
-  --focus-ring: rgba(48, 209, 88, 0.2);
-  --focus-ring-soft: rgba(48, 209, 88, 0.12);
-  --focus-ring-subtle: rgba(48, 209, 88, 0.08);
-  --info-ring: rgba(98, 188, 233, 0.35);
-  --muted-badge: rgba(142, 142, 147, 0.15);
-  --success-contrast: #0d0d0b;
-  --footer-secondary-ink: rgba(232, 228, 218, 0.88);
-  --footer-secondary-stroke: rgba(232, 228, 218, 0.32);
+  /* ==================================================================
+     LIGHT MODE = default (Artemis neutre / crème)
+     ================================================================== */
 
+  /* Surfaces */
+  --bg: #F8F6F1;                         /* Crème doux — fond principal Artemis */
+  --bg-elevated: #FFFFFF;                 /* Cartes / modales / panneaux */
+  --bg-hover: #EEEAE0;                    /* Hover d'éléments list/button */
+  /* Alias pour compat avec variables legacy upstream (--bg-primary /
+     --bg-secondary) utilisées par le chat/chat-composer/audio-viz. Sans
+     ces alias le fallback hardcodé est #fafafa / #efeae2 → bg blanc en
+     DARK MODE, texte warm white invisible. */
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--bg-elevated);
+  --border: rgba(34, 38, 42, 0.08);
+  --border-mid: rgba(34, 38, 42, 0.14);
+
+  /* Texte (NE JAMAIS utiliser #000000 pur — brand rule) */
+  --text: #22262A;                        /* Noir-gris Artemis */
+  --text-primary: #22262A;
+  --text-secondary: #6D757E;              /* Gris moyen Artemis */
+  --text-tertiary: #A8ADB3;
+
+  /* Accent primaire = Olive Paysages */
+  --accent: #7B9237;
+  --accent-hover: #6A7F2F;
+  --accent-soft: rgba(123, 146, 55, 0.10);
+  --accent-tint: rgba(123, 146, 55, 0.12);
+  --accent-tint-soft: rgba(123, 146, 55, 0.06);
+  --accent-border: rgba(123, 146, 55, 0.18);
+  --accent-border-strong: rgba(123, 146, 55, 0.36);
+
+  /* Alertes / recording — Rouge bordeaux Artemis */
+  --red: #A51F18;
+  --red-bg: rgba(165, 31, 24, 0.12);
+  --red-tint: rgba(165, 31, 24, 0.10);
+  --red-tint-soft: rgba(165, 31, 24, 0.06);
+  --red-tint-strong: rgba(165, 31, 24, 0.18);
+  --red-tint-stronger: rgba(165, 31, 24, 0.22);
+  --red-border: rgba(165, 31, 24, 0.12);
+  --red-border-strong: rgba(165, 31, 24, 0.28);
+  --red-border-stronger: rgba(165, 31, 24, 0.44);
+  --red-glow-soft: rgba(165, 31, 24, 0.06);
+
+  /* Success / live — Forêt Artemis */
+  --green: #0C5D40;
+  --live: #0C5D40;
+  --green-tint: rgba(12, 93, 64, 0.10);
+  --green-tint-soft: rgba(12, 93, 64, 0.06);
+  --green-border: rgba(12, 93, 64, 0.14);
+  --green-border-soft: rgba(12, 93, 64, 0.10);
+  --green-ring: rgba(12, 93, 64, 0.16);
+  --green-glow: rgba(12, 93, 64, 0.22);
+  --green-glow-soft: rgba(12, 93, 64, 0.14);
+  --green-solid-soft: rgba(12, 93, 64, 0.72);
+  --green-solid-strong: rgba(12, 93, 64, 0.84);
+
+  /* Accents secondaires — Taupe Concept (neutre chaude) + Brun orangé Artemis */
+  --purple: #68544B;                       /* Taupe — tertiaire neutre */
+  --orange: #AD6200;                       /* Brun orangé Artemis */
+  --purple-solid-soft: rgba(104, 84, 75, 0.55);
+  --purple-solid-strong: rgba(104, 84, 75, 0.72);
+  --orange-tint: rgba(173, 98, 0, 0.10);
+  --orange-tint-soft: rgba(173, 98, 0, 0.06);
+  --orange-border: rgba(173, 98, 0, 0.16);
+
+  /* Ombres — douces en light mode */
+  --shadow-color: rgba(34, 38, 42, 0.12);
+  --shadow-soft: rgba(34, 38, 42, 0.08);
+  --shadow-strong: rgba(34, 38, 42, 0.16);
+  --shadow-stronger: rgba(34, 38, 42, 0.20);
+  --inset-highlight: rgba(34, 38, 42, 0.03);
+  --inset-shadow: rgba(34, 38, 42, 0.08);
+
+  /* Surfaces empilées (variations de gris pour couches) */
+  --surface-stroke-subtle: rgba(34, 38, 42, 0.06);
+  --surface-fill: rgba(34, 38, 42, 0.03);
+  --surface-fill-hover: rgba(34, 38, 42, 0.05);
+  --surface-fill-strong: rgba(34, 38, 42, 0.08);
+  --surface-fill-stronger: rgba(34, 38, 42, 0.12);
+  --surface-fill-strongest: rgba(34, 38, 42, 0.18);
+  --surface-fill-strongest-hover: rgba(34, 38, 42, 0.24);
+  --neutral-tint: rgba(34, 38, 42, 0.06);
+  --neutral-tint-soft: rgba(34, 38, 42, 0.04);
+  --neutral-border: rgba(34, 38, 42, 0.10);
+
+  /* Overlays */
+  --overlay-scrim: rgba(248, 246, 241, 0.78);
+  --modal-scrim: rgba(248, 246, 241, 0.82);
+
+  /* Focus / états */
+  --focus-ring: rgba(123, 146, 55, 0.22);
+  --focus-ring-soft: rgba(123, 146, 55, 0.14);
+  --focus-ring-subtle: rgba(123, 146, 55, 0.10);
+  --info-ring: rgba(104, 84, 75, 0.24);
+  --muted-badge: rgba(109, 117, 126, 0.16);
+  --success-contrast: #FFFFFF;
+
+  /* Footer */
+  --footer-secondary-ink: rgba(34, 38, 42, 0.78);
+  --footer-secondary-stroke: rgba(34, 38, 42, 0.28);
+
+  /* Géométrie */
   --radius: 8px;
   --radius-lg: 10px;
-  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Instrument Serif', ui-serif, 'Iowan Old Style', Georgia, serif;
-  --font-mono: 'Geist Mono', 'SF Mono', 'Menlo', monospace;
+
+  /* Typographie — Artemis : Montserrat (fallback Gotham) + EB Garamond Italic (fallback Mrs Eaves) */
+  --font-sans: 'Montserrat', 'Gotham', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-display: 'EB Garamond', 'Mrs Eaves', ui-serif, 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Geist Mono', 'SF Mono', 'Menlo', Consolas, monospace;
 
   /* Note / meeting surfaces */
-  --note-surface-fill: rgba(20, 20, 18, 0.96);
+  --note-surface-fill: rgba(255, 255, 255, 0.96);
   --note-shell-shadow:
-    0 18px 34px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --meeting-surface-fill: rgba(255, 255, 255, 0.02);
+    0 18px 34px rgba(34, 38, 42, 0.12),
+    inset 0 1px 0 rgba(34, 38, 42, 0.03);
+  --meeting-surface-fill: rgba(34, 38, 42, 0.03);
   --meeting-prompt-shadow:
-    0 18px 36px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    0 18px 36px rgba(34, 38, 42, 0.12),
+    inset 0 1px 0 rgba(34, 38, 42, 0.03);
 
   /* Command palette */
-  --panel: rgba(28, 28, 34, 0.98);
-  --panel-edge: rgba(255, 255, 255, 0.06);
-  --palette-accent: #4da8d9;
-  --palette-accent-soft: rgba(77, 168, 217, 0.18);
-  --row-hover: rgba(255, 255, 255, 0.04);
-  --row-focus: rgba(77, 168, 217, 0.16);
-  --section-label: #6e6e73;
-  --palette-scroll-thumb: rgba(255, 255, 255, 0.08);
-  --palette-icon-bg: rgba(255, 255, 255, 0.06);
-  --palette-badge-bg: rgba(255, 255, 255, 0.04);
-  --palette-footer-kbd-bg: rgba(255, 255, 255, 0.06);
+  --panel: rgba(255, 255, 255, 0.98);
+  --panel-edge: rgba(34, 38, 42, 0.10);
+  --palette-accent: #7B9237;
+  --palette-accent-soft: rgba(123, 146, 55, 0.16);
+  --row-hover: rgba(34, 38, 42, 0.04);
+  --row-focus: rgba(123, 146, 55, 0.14);
+  --section-label: #6D757E;
+  --palette-scroll-thumb: rgba(34, 38, 42, 0.16);
+  --palette-icon-bg: rgba(34, 38, 42, 0.06);
+  --palette-badge-bg: rgba(34, 38, 42, 0.06);
+  --palette-footer-kbd-bg: rgba(34, 38, 42, 0.06);
   --palette-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.32),
-    0 6px 14px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 24px 48px rgba(34, 38, 42, 0.14),
+    0 6px 14px rgba(34, 38, 42, 0.10),
+    inset 0 1px 0 rgba(34, 38, 42, 0.03);
 
   /* Dictation overlay */
   --dictation-pill-bg: var(--bg-hover);
   --dictation-pill-border: var(--border-mid);
   --dictation-pill-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.35),
-    0 4px 10px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 14px 28px rgba(34, 38, 42, 0.14),
+    0 4px 10px rgba(34, 38, 42, 0.08),
+    inset 0 1px 0 rgba(34, 38, 42, 0.03);
   --dictation-pill-error-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.18),
-    0 4px 10px rgba(0, 0, 0, 0.14),
+    0 14px 28px rgba(34, 38, 42, 0.16),
+    0 4px 10px rgba(34, 38, 42, 0.10),
     0 0 0 1px var(--dictation-error-outline),
     0 0 14px var(--dictation-error-halo);
-  --dictation-error-border: rgba(255, 69, 58, 0.45);
-  --dictation-error-ring: rgba(255, 69, 58, 0.16);
-  --dictation-error-glow: rgba(255, 69, 58, 0.28);
-  --dictation-error-outline: rgba(255, 69, 58, 0.14);
-  --dictation-error-halo: rgba(255, 69, 58, 0.08);
-  --dictation-listening-ring: rgba(48, 209, 88, 0.18);
-  --dictation-listening-glow: rgba(48, 209, 88, 0.28);
-  --dictation-accent-ring: rgba(48, 209, 88, 0.18);
-  --dictation-accent-glow: rgba(48, 209, 88, 0.28);
-  --dictation-spinner-track: rgba(48, 209, 88, 0.18);
-  --dictation-waveform-top: rgba(255, 255, 255, 0.85);
-  --dictation-waveform-bottom: rgba(255, 255, 255, 0.42);
+  --dictation-error-border: rgba(165, 31, 24, 0.36);
+  --dictation-error-ring: rgba(165, 31, 24, 0.14);
+  --dictation-error-glow: rgba(165, 31, 24, 0.22);
+  --dictation-error-outline: rgba(165, 31, 24, 0.14);
+  --dictation-error-halo: rgba(165, 31, 24, 0.08);
+  --dictation-listening-ring: rgba(12, 93, 64, 0.16);
+  --dictation-listening-glow: rgba(12, 93, 64, 0.22);
+  --dictation-accent-ring: rgba(123, 146, 55, 0.16);
+  --dictation-accent-glow: rgba(123, 146, 55, 0.22);
+  --dictation-spinner-track: rgba(123, 146, 55, 0.16);
+  --dictation-waveform-top: rgba(34, 38, 42, 0.78);
+  --dictation-waveform-bottom: rgba(34, 38, 42, 0.32);
 }
 
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme='dark']) {
-    --bg: #ededee;
-    --bg-elevated: #e4e4e6;
-    --bg-hover: #dadadd;
-    --border: rgba(0, 0, 0, 0.07);
-    --border-mid: rgba(0, 0, 0, 0.13);
-    --text: #1a1a1e;
-    --text-primary: #1a1a1e;
-    --text-secondary: #86868b;
-    --text-tertiary: #aeaeb2;
-    --accent: #c96b4e;
-    --accent-hover: #b85a3e;
-    --accent-soft: rgba(201, 107, 78, 0.1);
-    --red: #c0392b;
-    --red-bg: rgba(192, 57, 43, 0.12);
-    --green: #2e7d46;
-    --live: #2e7d46;
-    --purple: #8b5cf6;
-    --orange: #b8731e;
-    --purple-solid-soft: rgba(139, 92, 246, 0.58);
-    --purple-solid-strong: rgba(139, 92, 246, 0.72);
-    --accent-tint: rgba(201, 107, 78, 0.1);
-    --accent-tint-soft: rgba(201, 107, 78, 0.05);
-    --accent-border: rgba(201, 107, 78, 0.15);
-    --accent-border-strong: rgba(201, 107, 78, 0.28);
-    --green-tint: rgba(46, 125, 70, 0.1);
-    --green-tint-soft: rgba(46, 125, 70, 0.06);
-    --green-border: rgba(46, 125, 70, 0.14);
-    --green-border-soft: rgba(46, 125, 70, 0.1);
-    --green-ring: rgba(46, 125, 70, 0.14);
-    --green-glow: rgba(46, 125, 70, 0.22);
-    --green-glow-soft: rgba(46, 125, 70, 0.14);
-    --green-solid-soft: rgba(46, 125, 70, 0.72);
-    --green-solid-strong: rgba(46, 125, 70, 0.84);
-    --red-tint: rgba(192, 57, 43, 0.1);
-    --red-tint-soft: rgba(192, 57, 43, 0.05);
-    --red-border: rgba(192, 57, 43, 0.1);
-    --red-border-strong: rgba(192, 57, 43, 0.24);
-    --red-border-stronger: rgba(192, 57, 43, 0.38);
-    --red-tint-strong: rgba(192, 57, 43, 0.15);
-    --red-tint-stronger: rgba(192, 57, 43, 0.2);
-    --red-glow-soft: rgba(192, 57, 43, 0.06);
-    --orange-tint: rgba(184, 115, 30, 0.1);
-    --orange-tint-soft: rgba(184, 115, 30, 0.06);
-    --orange-border: rgba(184, 115, 30, 0.16);
-    --shadow-color: rgba(0, 0, 0, 0.12);
-    --shadow-soft: rgba(0, 0, 0, 0.08);
-    --shadow-strong: rgba(0, 0, 0, 0.16);
-    --shadow-stronger: rgba(0, 0, 0, 0.18);
-    --inset-highlight: rgba(0, 0, 0, 0.03);
-    --inset-shadow: rgba(0, 0, 0, 0.08);
-    --surface-stroke-subtle: rgba(0, 0, 0, 0.06);
-    --surface-fill: rgba(0, 0, 0, 0.03);
-    --surface-fill-hover: rgba(0, 0, 0, 0.05);
-    --surface-fill-strong: rgba(0, 0, 0, 0.08);
-    --surface-fill-stronger: rgba(0, 0, 0, 0.12);
-    --surface-fill-strongest: rgba(0, 0, 0, 0.18);
-    --surface-fill-strongest-hover: rgba(0, 0, 0, 0.24);
-    --neutral-tint: rgba(0, 0, 0, 0.06);
-    --neutral-tint-soft: rgba(0, 0, 0, 0.04);
-    --neutral-border: rgba(0, 0, 0, 0.1);
-    --overlay-scrim: rgba(237, 237, 238, 0.78);
-    --modal-scrim: rgba(237, 237, 238, 0.82);
-    --focus-ring: rgba(201, 107, 78, 0.16);
-    --focus-ring-soft: rgba(201, 107, 78, 0.1);
-    --focus-ring-subtle: rgba(201, 107, 78, 0.07);
-    --info-ring: rgba(98, 188, 233, 0.24);
-    --muted-badge: rgba(134, 134, 139, 0.16);
-    --success-contrast: #ededee;
-    --footer-secondary-ink: rgba(26, 26, 30, 0.78);
-    --footer-secondary-stroke: rgba(26, 26, 30, 0.28);
+/* ==================================================================
+   DARK MODE — appliqué si OS le demande OU data-theme='dark' forcé
+   (data-theme='light' reste explicit si l'utilisateur a choisi light)
+   ================================================================== */
 
-    --note-surface-fill: rgba(228, 228, 230, 0.96);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --bg: #1A1C16;                         /* Sombre avec teinte olive */
+    --bg-elevated: #22251E;
+    --bg-hover: #2C2F26;
+    /* Alias legacy — voir commentaire plus haut dans le light mode. */
+    --bg-primary: var(--bg);
+    --bg-secondary: var(--bg-elevated);
+    --border: rgba(237, 234, 216, 0.08);
+    --border-mid: rgba(237, 234, 216, 0.14);
+
+    --text: #EDEAD8;                       /* Warm white sur sombre */
+    --text-primary: #EDEAD8;
+    --text-secondary: #9FA397;
+    --text-tertiary: #5F6358;
+
+    --accent: #9FB455;                     /* Olive éclaircie pour contraste sur sombre */
+    --accent-hover: #B4C96C;
+    --accent-soft: rgba(159, 180, 85, 0.12);
+    --accent-tint: rgba(159, 180, 85, 0.14);
+    --accent-tint-soft: rgba(159, 180, 85, 0.08);
+    --accent-border: rgba(159, 180, 85, 0.20);
+    --accent-border-strong: rgba(159, 180, 85, 0.44);
+
+    --red: #E06B5E;
+    --red-bg: rgba(224, 107, 94, 0.12);
+    --red-tint: rgba(224, 107, 94, 0.12);
+    --red-tint-soft: rgba(224, 107, 94, 0.06);
+    --red-tint-strong: rgba(224, 107, 94, 0.22);
+    --red-tint-stronger: rgba(224, 107, 94, 0.28);
+    --red-border: rgba(224, 107, 94, 0.12);
+    --red-border-strong: rgba(224, 107, 94, 0.32);
+    --red-border-stronger: rgba(224, 107, 94, 0.52);
+    --red-glow-soft: rgba(224, 107, 94, 0.05);
+
+    --green: #2E8A66;
+    --live: #2E8A66;
+    --green-tint: rgba(46, 138, 102, 0.14);
+    --green-tint-soft: rgba(46, 138, 102, 0.07);
+    --green-border: rgba(46, 138, 102, 0.14);
+    --green-border-soft: rgba(46, 138, 102, 0.10);
+    --green-ring: rgba(46, 138, 102, 0.20);
+    --green-glow: rgba(46, 138, 102, 0.30);
+    --green-glow-soft: rgba(46, 138, 102, 0.20);
+    --green-solid-soft: rgba(46, 138, 102, 0.72);
+    --green-solid-strong: rgba(46, 138, 102, 0.86);
+
+    --purple: #8F7B70;
+    --orange: #D4832A;
+    --purple-solid-soft: rgba(143, 123, 112, 0.58);
+    --purple-solid-strong: rgba(143, 123, 112, 0.78);
+    --orange-tint: rgba(212, 131, 42, 0.12);
+    --orange-tint-soft: rgba(212, 131, 42, 0.08);
+    --orange-border: rgba(212, 131, 42, 0.16);
+
+    --shadow-color: rgba(0, 0, 0, 0.40);
+    --shadow-soft: rgba(0, 0, 0, 0.14);
+    --shadow-strong: rgba(0, 0, 0, 0.44);
+    --shadow-stronger: rgba(0, 0, 0, 0.48);
+    --inset-highlight: rgba(255, 255, 255, 0.04);
+    --inset-shadow: rgba(0, 0, 0, 0.16);
+
+    --surface-stroke-subtle: rgba(255, 255, 255, 0.04);
+    --surface-fill: rgba(255, 255, 255, 0.03);
+    --surface-fill-hover: rgba(255, 255, 255, 0.05);
+    --surface-fill-strong: rgba(255, 255, 255, 0.08);
+    --surface-fill-stronger: rgba(255, 255, 255, 0.14);
+    --surface-fill-strongest: rgba(255, 255, 255, 0.22);
+    --surface-fill-strongest-hover: rgba(255, 255, 255, 0.32);
+    --neutral-tint: rgba(255, 255, 255, 0.06);
+    --neutral-tint-soft: rgba(255, 255, 255, 0.04);
+    --neutral-border: rgba(255, 255, 255, 0.08);
+
+    --overlay-scrim: rgba(26, 28, 22, 0.70);
+    --modal-scrim: rgba(26, 28, 22, 0.74);
+
+    --focus-ring: rgba(159, 180, 85, 0.24);
+    --focus-ring-soft: rgba(159, 180, 85, 0.16);
+    --focus-ring-subtle: rgba(159, 180, 85, 0.10);
+    --info-ring: rgba(143, 123, 112, 0.36);
+    --muted-badge: rgba(159, 163, 151, 0.16);
+    --success-contrast: #1A1C16;
+
+    --footer-secondary-ink: rgba(237, 234, 216, 0.86);
+    --footer-secondary-stroke: rgba(237, 234, 216, 0.32);
+
+    --note-surface-fill: rgba(34, 37, 30, 0.96);
     --note-shell-shadow:
-      0 18px 34px rgba(0, 0, 0, 0.12),
-      inset 0 1px 0 rgba(0, 0, 0, 0.03);
-    --meeting-surface-fill: rgba(0, 0, 0, 0.03);
+      0 18px 34px rgba(0, 0, 0, 0.40),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --meeting-surface-fill: rgba(255, 255, 255, 0.02);
     --meeting-prompt-shadow:
-      0 18px 36px rgba(0, 0, 0, 0.12),
-      inset 0 1px 0 rgba(0, 0, 0, 0.03);
+      0 18px 36px rgba(0, 0, 0, 0.40),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
-    --panel: rgba(245, 245, 247, 0.98);
-    --panel-edge: rgba(0, 0, 0, 0.1);
-    --palette-accent: #c96b4e;
-    --palette-accent-soft: rgba(201, 107, 78, 0.16);
-    --row-hover: rgba(0, 0, 0, 0.04);
-    --row-focus: rgba(201, 107, 78, 0.14);
-    --section-label: #86868b;
-    --palette-scroll-thumb: rgba(0, 0, 0, 0.16);
-    --palette-icon-bg: rgba(0, 0, 0, 0.06);
-    --palette-badge-bg: rgba(0, 0, 0, 0.06);
-    --palette-footer-kbd-bg: rgba(0, 0, 0, 0.06);
+    --panel: rgba(34, 37, 30, 0.98);
+    --panel-edge: rgba(255, 255, 255, 0.06);
+    --palette-accent: #9FB455;
+    --palette-accent-soft: rgba(159, 180, 85, 0.18);
+    --row-hover: rgba(255, 255, 255, 0.04);
+    --row-focus: rgba(159, 180, 85, 0.18);
+    --section-label: #9FA397;
+    --palette-scroll-thumb: rgba(255, 255, 255, 0.08);
+    --palette-icon-bg: rgba(255, 255, 255, 0.06);
+    --palette-badge-bg: rgba(255, 255, 255, 0.04);
+    --palette-footer-kbd-bg: rgba(255, 255, 255, 0.06);
     --palette-shadow:
-      0 24px 48px rgba(0, 0, 0, 0.14),
-      0 6px 14px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(0, 0, 0, 0.03);
+      0 24px 48px rgba(0, 0, 0, 0.40),
+      0 6px 14px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
-    --dictation-pill-bg: var(--bg-hover);
-    --dictation-pill-border: var(--border-mid);
     --dictation-pill-shadow:
-      0 14px 28px rgba(0, 0, 0, 0.12),
-      0 4px 10px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(0, 0, 0, 0.03);
-    --dictation-error-border: rgba(192, 57, 43, 0.32);
-    --dictation-error-ring: rgba(192, 57, 43, 0.12);
-    --dictation-error-glow: rgba(192, 57, 43, 0.18);
-    --dictation-error-outline: rgba(192, 57, 43, 0.12);
-    --dictation-error-halo: rgba(192, 57, 43, 0.06);
-    --dictation-listening-ring: rgba(46, 125, 70, 0.14);
-    --dictation-listening-glow: rgba(46, 125, 70, 0.2);
-    --dictation-accent-ring: rgba(201, 107, 78, 0.14);
-    --dictation-accent-glow: rgba(201, 107, 78, 0.2);
-    --dictation-spinner-track: rgba(201, 107, 78, 0.14);
-    --dictation-waveform-top: rgba(26, 25, 22, 0.7);
-    --dictation-waveform-bottom: rgba(26, 25, 22, 0.28);
+      0 14px 28px rgba(0, 0, 0, 0.40),
+      0 4px 10px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --dictation-error-border: rgba(224, 107, 94, 0.48);
+    --dictation-error-ring: rgba(224, 107, 94, 0.18);
+    --dictation-error-glow: rgba(224, 107, 94, 0.30);
+    --dictation-error-outline: rgba(224, 107, 94, 0.16);
+    --dictation-error-halo: rgba(224, 107, 94, 0.10);
+    --dictation-listening-ring: rgba(46, 138, 102, 0.22);
+    --dictation-listening-glow: rgba(46, 138, 102, 0.30);
+    --dictation-accent-ring: rgba(159, 180, 85, 0.22);
+    --dictation-accent-glow: rgba(159, 180, 85, 0.30);
+    --dictation-spinner-track: rgba(159, 180, 85, 0.22);
+    --dictation-waveform-top: rgba(237, 234, 216, 0.85);
+    --dictation-waveform-bottom: rgba(237, 234, 216, 0.42);
   }
 }
 
-:root[data-theme='light'] {
-  color-scheme: light;
-
-  --bg: #ededee;
-  --bg-elevated: #e4e4e6;
-  --bg-hover: #dadadd;
-  --border: rgba(0, 0, 0, 0.07);
-  --border-mid: rgba(0, 0, 0, 0.13);
-  --text: #1a1a1e;
-  --text-primary: #1a1a1e;
-  --text-secondary: #86868b;
-  --text-tertiary: #aeaeb2;
-  --accent: #c96b4e;
-  --accent-hover: #b85a3e;
-  --accent-soft: rgba(201, 107, 78, 0.1);
-  --red: #c0392b;
-  --red-bg: rgba(192, 57, 43, 0.12);
-  --green: #2e7d46;
-  --live: #2e7d46;
-  --purple: #8b5cf6;
-  --orange: #b8731e;
-  --purple-solid-soft: rgba(139, 92, 246, 0.58);
-  --purple-solid-strong: rgba(139, 92, 246, 0.72);
-  --accent-tint: rgba(201, 107, 78, 0.1);
-  --accent-tint-soft: rgba(201, 107, 78, 0.05);
-  --accent-border: rgba(201, 107, 78, 0.15);
-  --accent-border-strong: rgba(201, 107, 78, 0.28);
-  --green-tint: rgba(46, 125, 70, 0.1);
-  --green-tint-soft: rgba(46, 125, 70, 0.06);
-  --green-border: rgba(46, 125, 70, 0.14);
-  --green-border-soft: rgba(46, 125, 70, 0.1);
-  --green-ring: rgba(46, 125, 70, 0.14);
-  --green-glow: rgba(46, 125, 70, 0.22);
-  --green-glow-soft: rgba(46, 125, 70, 0.14);
-  --green-solid-soft: rgba(46, 125, 70, 0.72);
-  --green-solid-strong: rgba(46, 125, 70, 0.84);
-  --red-tint: rgba(192, 57, 43, 0.1);
-  --red-tint-soft: rgba(192, 57, 43, 0.05);
-  --red-border: rgba(192, 57, 43, 0.1);
-  --red-border-strong: rgba(192, 57, 43, 0.24);
-  --red-border-stronger: rgba(192, 57, 43, 0.38);
-  --red-tint-strong: rgba(192, 57, 43, 0.15);
-  --red-tint-stronger: rgba(192, 57, 43, 0.2);
-  --red-glow-soft: rgba(192, 57, 43, 0.06);
-  --orange-tint: rgba(184, 115, 30, 0.1);
-  --orange-tint-soft: rgba(184, 115, 30, 0.06);
-  --orange-border: rgba(184, 115, 30, 0.16);
-  --shadow-color: rgba(0, 0, 0, 0.12);
-  --shadow-soft: rgba(0, 0, 0, 0.08);
-  --shadow-strong: rgba(0, 0, 0, 0.16);
-  --shadow-stronger: rgba(0, 0, 0, 0.18);
-  --inset-highlight: rgba(0, 0, 0, 0.03);
-  --inset-shadow: rgba(0, 0, 0, 0.08);
-  --surface-stroke-subtle: rgba(0, 0, 0, 0.06);
-  --surface-fill: rgba(0, 0, 0, 0.03);
-  --surface-fill-hover: rgba(0, 0, 0, 0.05);
-  --surface-fill-strong: rgba(0, 0, 0, 0.08);
-  --surface-fill-stronger: rgba(0, 0, 0, 0.12);
-  --surface-fill-strongest: rgba(0, 0, 0, 0.18);
-  --surface-fill-strongest-hover: rgba(0, 0, 0, 0.24);
-  --neutral-tint: rgba(0, 0, 0, 0.06);
-  --neutral-tint-soft: rgba(0, 0, 0, 0.04);
-  --neutral-border: rgba(0, 0, 0, 0.1);
-  --overlay-scrim: rgba(237, 237, 238, 0.78);
-  --modal-scrim: rgba(237, 237, 238, 0.82);
-  --focus-ring: rgba(201, 107, 78, 0.16);
-  --focus-ring-soft: rgba(201, 107, 78, 0.1);
-  --focus-ring-subtle: rgba(201, 107, 78, 0.07);
-  --info-ring: rgba(98, 188, 233, 0.24);
-  --muted-badge: rgba(134, 134, 139, 0.16);
-  --success-contrast: #ededee;
-  --footer-secondary-ink: rgba(26, 26, 30, 0.78);
-  --footer-secondary-stroke: rgba(26, 26, 30, 0.28);
-
-  --note-surface-fill: rgba(228, 228, 230, 0.96);
-  --note-shell-shadow:
-    0 18px 34px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(0, 0, 0, 0.03);
-  --meeting-surface-fill: rgba(0, 0, 0, 0.03);
-  --meeting-prompt-shadow:
-    0 18px 36px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(0, 0, 0, 0.03);
-
-  --panel: rgba(245, 245, 247, 0.98);
-  --panel-edge: rgba(0, 0, 0, 0.1);
-  --palette-accent: #c96b4e;
-  --palette-accent-soft: rgba(201, 107, 78, 0.16);
-  --row-hover: rgba(0, 0, 0, 0.04);
-  --row-focus: rgba(201, 107, 78, 0.14);
-  --section-label: #86868b;
-  --palette-scroll-thumb: rgba(0, 0, 0, 0.16);
-  --palette-icon-bg: rgba(0, 0, 0, 0.06);
-  --palette-badge-bg: rgba(0, 0, 0, 0.06);
-  --palette-footer-kbd-bg: rgba(0, 0, 0, 0.06);
-  --palette-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.14),
-    0 6px 14px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(0, 0, 0, 0.03);
-
-  --dictation-pill-bg: var(--bg-hover);
-  --dictation-pill-border: var(--border-mid);
-  --dictation-pill-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.12),
-    0 4px 10px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(0, 0, 0, 0.03);
-  --dictation-error-border: rgba(192, 57, 43, 0.32);
-  --dictation-error-ring: rgba(192, 57, 43, 0.12);
-  --dictation-error-glow: rgba(192, 57, 43, 0.18);
-  --dictation-error-outline: rgba(192, 57, 43, 0.12);
-  --dictation-error-halo: rgba(192, 57, 43, 0.06);
-  --dictation-listening-ring: rgba(46, 125, 70, 0.14);
-  --dictation-listening-glow: rgba(46, 125, 70, 0.2);
-  --dictation-accent-ring: rgba(201, 107, 78, 0.14);
-  --dictation-accent-glow: rgba(201, 107, 78, 0.2);
-  --dictation-spinner-track: rgba(201, 107, 78, 0.14);
-  --dictation-waveform-top: rgba(26, 25, 22, 0.7);
-  --dictation-waveform-bottom: rgba(26, 25, 22, 0.28);
-}
-
+/* Explicit [data-theme='dark'] — même palette que le media query */
 :root[data-theme='dark'] {
   color-scheme: dark;
+
+  --bg: #1A1C16;
+  --bg-elevated: #22251E;
+  --bg-hover: #2C2F26;
+  /* Alias legacy — voir bloc light mode. */
+  --bg-primary: var(--bg);
+  --bg-secondary: var(--bg-elevated);
+  --border: rgba(237, 234, 216, 0.08);
+  --border-mid: rgba(237, 234, 216, 0.14);
+
+  --text: #EDEAD8;
+  --text-primary: #EDEAD8;
+  --text-secondary: #9FA397;
+  --text-tertiary: #5F6358;
+
+  --accent: #9FB455;
+  --accent-hover: #B4C96C;
+  --accent-soft: rgba(159, 180, 85, 0.12);
+  --accent-tint: rgba(159, 180, 85, 0.14);
+  --accent-tint-soft: rgba(159, 180, 85, 0.08);
+  --accent-border: rgba(159, 180, 85, 0.20);
+  --accent-border-strong: rgba(159, 180, 85, 0.44);
+
+  --red: #E06B5E;
+  --red-bg: rgba(224, 107, 94, 0.12);
+  --red-tint: rgba(224, 107, 94, 0.12);
+  --red-tint-soft: rgba(224, 107, 94, 0.06);
+  --red-tint-strong: rgba(224, 107, 94, 0.22);
+  --red-tint-stronger: rgba(224, 107, 94, 0.28);
+  --red-border: rgba(224, 107, 94, 0.12);
+  --red-border-strong: rgba(224, 107, 94, 0.32);
+  --red-border-stronger: rgba(224, 107, 94, 0.52);
+  --red-glow-soft: rgba(224, 107, 94, 0.05);
+
+  --green: #2E8A66;
+  --live: #2E8A66;
+  --green-tint: rgba(46, 138, 102, 0.14);
+  --green-tint-soft: rgba(46, 138, 102, 0.07);
+  --green-border: rgba(46, 138, 102, 0.14);
+  --green-border-soft: rgba(46, 138, 102, 0.10);
+  --green-ring: rgba(46, 138, 102, 0.20);
+  --green-glow: rgba(46, 138, 102, 0.30);
+  --green-glow-soft: rgba(46, 138, 102, 0.20);
+  --green-solid-soft: rgba(46, 138, 102, 0.72);
+  --green-solid-strong: rgba(46, 138, 102, 0.86);
+
+  --purple: #8F7B70;
+  --orange: #D4832A;
+  --purple-solid-soft: rgba(143, 123, 112, 0.58);
+  --purple-solid-strong: rgba(143, 123, 112, 0.78);
+  --orange-tint: rgba(212, 131, 42, 0.12);
+  --orange-tint-soft: rgba(212, 131, 42, 0.08);
+  --orange-border: rgba(212, 131, 42, 0.16);
+
+  --shadow-color: rgba(0, 0, 0, 0.40);
+  --shadow-soft: rgba(0, 0, 0, 0.14);
+  --shadow-strong: rgba(0, 0, 0, 0.44);
+  --shadow-stronger: rgba(0, 0, 0, 0.48);
+  --inset-highlight: rgba(255, 255, 255, 0.04);
+  --inset-shadow: rgba(0, 0, 0, 0.16);
+
+  --surface-stroke-subtle: rgba(255, 255, 255, 0.04);
+  --surface-fill: rgba(255, 255, 255, 0.03);
+  --surface-fill-hover: rgba(255, 255, 255, 0.05);
+  --surface-fill-strong: rgba(255, 255, 255, 0.08);
+  --surface-fill-stronger: rgba(255, 255, 255, 0.14);
+  --surface-fill-strongest: rgba(255, 255, 255, 0.22);
+  --surface-fill-strongest-hover: rgba(255, 255, 255, 0.32);
+  --neutral-tint: rgba(255, 255, 255, 0.06);
+  --neutral-tint-soft: rgba(255, 255, 255, 0.04);
+  --neutral-border: rgba(255, 255, 255, 0.08);
+
+  --overlay-scrim: rgba(26, 28, 22, 0.70);
+  --modal-scrim: rgba(26, 28, 22, 0.74);
+
+  --focus-ring: rgba(159, 180, 85, 0.24);
+  --focus-ring-soft: rgba(159, 180, 85, 0.16);
+  --focus-ring-subtle: rgba(159, 180, 85, 0.10);
+  --info-ring: rgba(143, 123, 112, 0.36);
+  --muted-badge: rgba(159, 163, 151, 0.16);
+  --success-contrast: #1A1C16;
+
+  --footer-secondary-ink: rgba(237, 234, 216, 0.86);
+  --footer-secondary-stroke: rgba(237, 234, 216, 0.32);
+
+  --note-surface-fill: rgba(34, 37, 30, 0.96);
+  --note-shell-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --meeting-surface-fill: rgba(255, 255, 255, 0.02);
+  --meeting-prompt-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  --panel: rgba(34, 37, 30, 0.98);
+  --panel-edge: rgba(255, 255, 255, 0.06);
+  --palette-accent: #9FB455;
+  --palette-accent-soft: rgba(159, 180, 85, 0.18);
+  --row-hover: rgba(255, 255, 255, 0.04);
+  --row-focus: rgba(159, 180, 85, 0.18);
+  --section-label: #9FA397;
+  --palette-scroll-thumb: rgba(255, 255, 255, 0.08);
+  --palette-icon-bg: rgba(255, 255, 255, 0.06);
+  --palette-badge-bg: rgba(255, 255, 255, 0.04);
+  --palette-footer-kbd-bg: rgba(255, 255, 255, 0.06);
+  --palette-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.40),
+    0 6px 14px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  --dictation-pill-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.40),
+    0 4px 10px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --dictation-error-border: rgba(224, 107, 94, 0.48);
+  --dictation-error-ring: rgba(224, 107, 94, 0.18);
+  --dictation-error-glow: rgba(224, 107, 94, 0.30);
+  --dictation-error-outline: rgba(224, 107, 94, 0.16);
+  --dictation-error-halo: rgba(224, 107, 94, 0.10);
+  --dictation-listening-ring: rgba(46, 138, 102, 0.22);
+  --dictation-listening-glow: rgba(46, 138, 102, 0.30);
+  --dictation-accent-ring: rgba(159, 180, 85, 0.22);
+  --dictation-accent-glow: rgba(159, 180, 85, 0.30);
+  --dictation-spinner-track: rgba(159, 180, 85, 0.22);
+  --dictation-waveform-top: rgba(237, 234, 216, 0.85);
+  --dictation-waveform-bottom: rgba(237, 234, 216, 0.42);
+}
+
+/* Explicit [data-theme='light'] — verrouille le light mode même si OS = dark */
+:root[data-theme='light'] {
+  color-scheme: light;
+  /* Les tokens du :root sont déjà en light mode, rien à override ici */
 }

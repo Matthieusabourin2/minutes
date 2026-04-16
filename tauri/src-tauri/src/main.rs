@@ -104,7 +104,7 @@ fn show_main_window(app: &tauri::AppHandle) {
         return;
     }
     if let Ok(win) = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-        .title("Minutes")
+        .title("Artemis Paysages")
         .inner_size(520.0, 700.0)
         .min_inner_size(420.0, 520.0)
         .transparent(true)
@@ -192,11 +192,11 @@ pub fn update_tray_state_with_mode(app: &tauri::AppHandle, is_active: bool, is_l
             tray.set_icon_as_template(!is_active).ok();
         }
         let tooltip = if is_live {
-            "Minutes — Transcription en direct…"
+            "Artemis Paysages — Transcription en direct…"
         } else if is_active {
-            "Minutes — Enregistrement…"
+            "Artemis Paysages — Enregistrement…"
         } else {
-            "Minutes"
+            "Artemis Paysages"
         };
         tray.set_tooltip(Some(tooltip)).ok();
     }
@@ -1051,7 +1051,7 @@ fn main() {
                 .icon(icon)
                 .icon_as_template(true)
                 .menu(&menu)
-                .tooltip("Minutes")
+                .tooltip("Artemis Paysages")
                 .on_menu_event(move |app, event| {
                     let recording = recording_clone.clone();
                     let stop = stop_clone.clone();
@@ -1465,6 +1465,7 @@ fn main() {
             commands::cmd_proactive_context_bundle,
             commands::cmd_list_devices,
             commands::cmd_delete_meeting,
+            commands::cmd_rename_meeting,
             commands::cmd_get_meeting_detail,
             commands::cmd_list_voices,
             commands::cmd_confirm_speaker,

@@ -1,4 +1,31 @@
-# CLAUDE.md — Minutes
+# CLAUDE.md — Minutes (Artemis Paysages fork)
+
+> **⚠️ ARTEMIS FORK NOTES (lire en premier)**
+>
+> Ce dépôt est le fork Catalia pour Artemis Paysages, pas l'upstream silverstein/minutes.
+> Les règles upstream ci-dessous restent valables sauf override explicite ci-dessous.
+>
+> **Identité produit actuelle du fork (voir `../HANDOFF.md` §12 pour le détail) :**
+> - Nom produit : **Artemis Paysages Enregistreur de Réunion**
+> - Bundle identifier : `com.artemis-paysages.enregistreur`
+> - Binaire : `artemis-paysages-app` (ex-`minutes-app`)
+> - Data dir utilisateur : `~/.artemis-paysages/` (ex-`~/.minutes/`)
+> - Config XDG : `~/.config/artemis-paysages/config.toml` (ex-`~/.config/minutes/`)
+> - Palette : Olive `#7B9237` + neutres Artemis (voir `tauri/src/styles/theme-tokens.css`)
+> - Typos : Montserrat (sans-serif) + EB Garamond Italic (serif accents)
+> - Logo : `tauri/src/assets/logo-paysages.png` (fond olive, lotus blanc)
+> - Icônes régénérables : `python3 packaging/artemis/generate-icons.py`
+> - Design system source : skill `artemis-paysages-design-system` (sur claude.ai)
+> - Auto-updater : **désactivé** (ne pas réactiver — voir commit `0b3fe9e`)
+>
+> **Règle absolue Artemis Paysages :**
+> Ne jamais introduire de couleur d'une autre sous-marque (Teal Outdoor #109CA3,
+> Taupe Concept #68544B, Forêt Espaces Verts #0C5D40 — ce dernier est toléré
+> uniquement comme marqueur "live/success" mineur). Rester sur Olive #7B9237.
+>
+> **Le texte d'après vient de l'upstream** — partiellement obsolète pour ce fork.
+
+---
 
 > Your AI remembers every conversation you've had.
 

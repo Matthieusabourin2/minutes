@@ -1,85 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prochain rendez-vous</title>
+  <title>Artemis Paysages — Prochain rendez-vous</title>
+  <link rel="stylesheet" href="styles/theme-tokens.css">
   <style>
-    @font-face {
-      font-family: 'Instrument Serif';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/InstrumentSerif-Regular.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Instrument Serif';
-      font-style: italic;
-      font-weight: 400;
-      src: url('fonts/InstrumentSerif-Italic.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/Geist-Regular.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 500;
-      src: url('fonts/Geist-Medium.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 600;
-      src: url('fonts/Geist-SemiBold.woff2') format('woff2');
-    }
+    /* Tokens chargés via styles/theme-tokens.css */
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      color-scheme: light dark;
-      --bg: #0D0D0B;
-      --bg-elevated: #141412;
-      --bg-hover: #1C1C1A;
-      --border: rgba(255, 255, 255, 0.06);
-      --border-mid: #2A2924;
-      --text: #E8E4DA;
-      --text-secondary: #6B6760;
-      --text-tertiary: #3D3B38;
-      --accent: #30D158;
-      --accent-hover: #4ADE70;
-      --accent-soft: rgba(48, 209, 88, 0.12);
-      --red: #FF453A;
-      --red-bg: rgba(255, 69, 58, 0.12);
-      --surface-fill: rgba(255, 255, 255, 0.02);
-      --inset-shadow: rgba(0, 0, 0, 0.14);
       --shadow:
-        0 18px 36px rgba(0, 0, 0, 0.34),
+        0 18px 36px rgba(34, 38, 42, 0.14),
+        inset 0 1px 0 rgba(34, 38, 42, 0.03);
+    }
+
+    :root[data-theme='dark'] {
+      --shadow:
+        0 18px 36px rgba(0, 0, 0, 0.40),
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg:             #F8F4ED;
-        --bg-elevated:    #EFEBE2;
-        --bg-hover:       #E8E2D8;
-        --border:         rgba(0, 0, 0, 0.07);
-        --border-mid:     rgba(0, 0, 0, 0.13);
-        --text:           #1A1916;
-        --text-secondary: #8C8880;
-        --text-tertiary:  #BDB9B0;
-        --accent:         #C96B4E;
-        --accent-hover:   #B85A3E;
-        --accent-soft:    rgba(201, 107, 78, 0.10);
-        --red:            #C0392B;
-        --red-bg:         rgba(192, 57, 43, 0.12);
-        --surface-fill:   rgba(0, 0, 0, 0.03);
-        --inset-shadow:   rgba(0, 0, 0, 0.08);
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) {
         --shadow:
-          0 18px 36px rgba(0, 0, 0, 0.12),
-          inset 0 1px 0 rgba(0, 0, 0, 0.03);
+          0 18px 36px rgba(0, 0, 0, 0.40),
+          inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
     }
 
@@ -89,7 +36,7 @@
     }
 
     body {
-      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-sans);
       background: var(--bg);
       color: var(--text);
       padding: 0;
@@ -347,8 +294,8 @@
 
       primaryBtn.textContent = hasUrl ? 'Rejoindre & enregistrer' : 'Enregistrer';
       summaryEl.textContent = hasUrl
-        ? 'Minutes peut ouvrir le lien du rendez-vous et démarrer un enregistrement local avant que la conversation ne démarre.'
-        : 'Minutes peut démarrer un enregistrement local maintenant pour que la transcription, les décisions et les actions soient capturées dès le début.';
+        ? 'Artemis Paysages peut ouvrir le lien du rendez-vous et démarrer un enregistrement local avant que la conversation ne démarre.'
+        : 'Artemis Paysages peut démarrer un enregistrement local maintenant pour que la transcription, les décisions et les actions soient capturées dès le début.';
     }
 
     function closeWindow() {

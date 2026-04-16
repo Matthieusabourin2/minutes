@@ -1,6 +1,6 @@
 {
-  "productName": "Minutes Dev",
-  "identifier": "com.useminutes.desktop.dev",
+  "productName": "Artemis Paysages Dev",
+  "identifier": "com.artemis-paysages.enregistreur.dev",
   "app": {
     "macOSPrivateApi": true
   }

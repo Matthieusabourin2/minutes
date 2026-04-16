@@ -563,7 +563,7 @@ mod tests {
         let home = home_dir();
         assert!(!is_tcc_protected(&home.join("meetings")));
         assert!(!is_tcc_protected(&home.join("notes")));
-        assert!(!is_tcc_protected(&home.join(".minutes")));
+        assert!(!is_tcc_protected(&home.join(".artemis-paysages")));
         assert!(!is_tcc_protected(&PathBuf::from("/tmp/vault")));
     }
 

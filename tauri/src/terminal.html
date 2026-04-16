@@ -1,68 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minutes Terminal</title>
+  <title>Artemis Paysages — Assistant</title>
+  <link rel="stylesheet" href="styles/theme-tokens.css">
   <link rel="stylesheet" href="vendor/xterm/xterm.css">
   <style>
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/Geist-Regular.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Geist';
-      font-style: normal;
-      font-weight: 500;
-      src: url('fonts/Geist-Medium.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Geist Mono';
-      font-style: normal;
-      font-weight: 400;
-      src: url('fonts/GeistMono-Regular.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Geist Mono';
-      font-style: normal;
-      font-weight: 500;
-      src: url('fonts/GeistMono-Medium.woff2') format('woff2');
-    }
+    /* Tokens chargés via styles/theme-tokens.css */
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :root {
-      color-scheme: light dark;
-      --bg:          #0D0D0B;
-      --bg-elevated: #141412;
-      --bg-hover:    #1C1C1A;
-      --border:      #2A2924;
-      --text:        #E8E4DA;
-      --text-secondary: #6B6760;
-      --text-tertiary:  #3D3B38;
-      --accent:      #30D158;
-      --red:         #FF453A;
-      --green:       #30D158;
-      --font-mono:   'Geist Mono', 'SF Mono', 'Menlo', monospace;
-      --font-sans:   'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg:             #F8F4ED;
-        --bg-elevated:    #EFEBE2;
-        --bg-hover:       #E8E2D8;
-        --border:         rgba(0,0,0,0.13);
-        --text:           #1A1916;
-        --text-secondary: #8C8880;
-        --text-tertiary:  #BDB9B0;
-        --accent:         #C96B4E;
-        --red:            #C0392B;
-        --green:          #2E7D46;
-      }
-    }
 
     body {
       background: var(--bg);
@@ -197,13 +144,13 @@
     const container = document.getElementById('terminal-container');
 
     const terminalInfo = await invoke('cmd_terminal_info', { sessionId });
-    headerTitle.textContent = terminalInfo.title || 'Minutes Assistant';
+    headerTitle.textContent = terminalInfo.title || 'Assistant Artemis';
     document.title = headerTitle.textContent;
 
     // Initialize xterm.js
     const term = new Terminal({
       theme: window.MINUTES_XTERM_THEME,
-      fontFamily: "'Geist Mono', 'SF Mono', Menlo, monospace",
+      fontFamily: "'JetBrains Mono', 'Geist Mono', 'SF Mono', Menlo, monospace",
       fontSize: 13,
       lineHeight: 1.2,
       cursorBlink: true,
@@ -261,7 +208,7 @@
     });
 
     await currentWindow.listen(`terminal:title:${sessionId}`, (event) => {
-      headerTitle.textContent = event.payload || 'Minutes Assistant';
+      headerTitle.textContent = event.payload || 'Assistant Artemis';
       document.title = headerTitle.textContent;
     });
 

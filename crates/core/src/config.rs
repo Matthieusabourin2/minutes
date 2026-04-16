@@ -103,6 +103,11 @@ pub struct TranscriptionConfig {
     pub model_path: PathBuf,
     pub min_words: usize,
     pub language: Option<String>,
+    /// Artemis/Catalia extension : biais whisper initial_prompt pour orienter la
+    /// transcription vers le vocabulaire métier (terrasse, pergola, pavé, gabion,
+    /// pouzzolane, etc.). None → pas de prompt (comportement whisper standard).
+    /// Voir `whisper.cpp` / `whisper-rs` : `FullParams::set_initial_prompt`.
+    pub initial_prompt: Option<String>,
     /// Silero VAD model name (resolved under model_path, e.g. "silero-v6.2.0" → ggml-silero-v6.2.0.bin).
     /// Set to empty string to disable VAD (falls back to energy-based silence stripping).
     pub vad_model: String,
@@ -169,6 +174,11 @@ pub struct SummarizationConfig {
     /// Artemis/Catalia extension: override the built-in English SYSTEM_PROMPT
     /// used across all LLM engines. None or empty → fall back to built-in prompt.
     pub custom_prompt: Option<String>,
+    /// Artemis/Catalia extension : prompt dédié aux notes rapides / mémos vocaux
+    /// (pipeline `ContentType::Memo`). None ou vide → fallback sur `custom_prompt`.
+    /// Idée : pour une note rapide, on veut un résumé léger sans profilage
+    /// ProcessCom (le sujet de la note est personnel au commercial).
+    pub memo_prompt: Option<String>,
     /// Artemis/Catalia extension: provide ANTHROPIC_API_KEY via config.toml
     /// instead of env var. None or empty → fall back to env var.
     pub api_key: Option<String>,
@@ -558,7 +568,9 @@ fn home_dir() -> PathBuf {
 }
 
 fn minutes_dir() -> PathBuf {
-    home_dir().join(".minutes")
+    // Artemis fork : dossier data utilisateur renommé `~/.artemis-paysages/`
+    // pour cohérence avec l'identité de l'app (ex-`~/.minutes/` upstream).
+    home_dir().join(".artemis-paysages")
 }
 
 fn config_base_dir_from(xdg_config_home: Option<OsString>, home: PathBuf) -> PathBuf {
@@ -575,7 +587,7 @@ fn config_base_dir() -> PathBuf {
 #[cfg(test)]
 fn config_path_from(xdg_config_home: Option<OsString>, home: PathBuf) -> PathBuf {
     config_base_dir_from(xdg_config_home, home)
-        .join("minutes")
+        .join("artemis-paysages")
         .join("config.toml")
 }
 
@@ -616,6 +628,7 @@ impl Default for TranscriptionConfig {
             model_path: minutes_dir().join("models"),
             min_words: 3,
             language: None,
+            initial_prompt: None,
             vad_model: "silero-v6.2.0".into(),
             noise_reduction: true,
             parakeet_binary: "parakeet".into(),
@@ -651,6 +664,7 @@ impl Default for SummarizationConfig {
             ollama_model: "llama3.2".into(),
             mistral_model: "mistral-large-latest".into(),
             custom_prompt: None,
+            memo_prompt: None,
             api_key: None,
         }
     }
@@ -736,8 +750,11 @@ fn maybe_seed_default_config(path: &Path) {
 
 impl Config {
     /// Standard config file location.
+    /// Artemis fork : `~/.config/artemis-paysages/config.toml` (ex-`~/.config/minutes/config.toml`).
     pub fn config_path() -> PathBuf {
-        config_base_dir().join("minutes").join("config.toml")
+        config_base_dir()
+            .join("artemis-paysages")
+            .join("config.toml")
     }
 
     /// Load config from file, falling back to defaults.
@@ -1005,7 +1022,7 @@ mod tests {
         let home = PathBuf::from("/tmp/test-home");
         let path = config_path_from(None, home.clone());
 
-        assert_eq!(path, home.join(".config/minutes/config.toml"));
+        assert_eq!(path, home.join(".config/artemis-paysages/config.toml"));
     }
 
     #[test]
@@ -1015,7 +1032,10 @@ mod tests {
             PathBuf::from("/tmp/test-home"),
         );
 
-        assert_eq!(path, PathBuf::from("/tmp/test-config/minutes/config.toml"));
+        assert_eq!(
+            path,
+            PathBuf::from("/tmp/test-config/artemis-paysages/config.toml")
+        );
     }
 
     #[test]
@@ -1023,7 +1043,7 @@ mod tests {
         let home = PathBuf::from("/tmp/test-home");
         let path = config_path_from(Some(OsString::new()), home.clone());
 
-        assert_eq!(path, home.join(".config/minutes/config.toml"));
+        assert_eq!(path, home.join(".config/artemis-paysages/config.toml"));
     }
 
     #[test]

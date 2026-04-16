@@ -48,7 +48,7 @@ pub struct VoiceProfileWithEmbedding {
 pub fn db_path() -> PathBuf {
     let base = dirs::home_dir()
         .expect("home directory must exist")
-        .join(".minutes");
+        .join(".artemis-paysages");
     std::fs::create_dir_all(&base).ok();
     base.join("voices.db")
 }

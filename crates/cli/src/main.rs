@@ -3099,11 +3099,12 @@ fn cmd_sources() -> Result<()> {
 fn cmd_setup(model: &str, list: bool, diarization: bool) -> Result<()> {
     if list {
         eprintln!("Available whisper models:");
-        eprintln!("  tiny      75 MB   (fastest, lowest quality)");
-        eprintln!("  base     142 MB");
-        eprintln!("  small    466 MB   (recommended default)");
-        eprintln!("  medium   1.5 GB");
-        eprintln!("  large-v3 3.1 GB   (best quality, slower)");
+        eprintln!("  tiny             75 MB   (fastest, lowest quality)");
+        eprintln!("  base            142 MB");
+        eprintln!("  small           466 MB");
+        eprintln!("  medium          1.5 GB");
+        eprintln!("  large-v3-turbo  1.6 GB   (recommended — best quality/speed on Apple Silicon)");
+        eprintln!("  large-v3        3.1 GB   (absolute best quality, slower)");
         eprintln!();
         eprintln!("Speaker diarization:");
         eprintln!("  --diarization   34 MB   (pyannote-rs: segmentation + speaker embedding)");
@@ -3120,7 +3121,14 @@ fn cmd_setup(model: &str, list: bool, diarization: bool) -> Result<()> {
         return cmd_setup_diarization();
     }
 
-    let valid_models = ["tiny", "base", "small", "medium", "large-v3"];
+    let valid_models = [
+        "tiny",
+        "base",
+        "small",
+        "medium",
+        "large-v3",
+        "large-v3-turbo",
+    ];
     if !valid_models.contains(&model) {
         anyhow::bail!(
             "unknown model: {}. Available: {}",

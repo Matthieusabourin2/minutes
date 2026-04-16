@@ -4458,6 +4458,30 @@ pub fn cmd_list_devices() -> serde_json::Value {
     })
 }
 
+/// Artemis/Catalia : renomme un rendez-vous (fichier .md + frontmatter title).
+///
+/// Wrap mince autour de `minutes_core::markdown::rename_meeting`. Accepté
+/// pour les fichiers dans `~/meetings/**` (également `memos/`). Si le nouveau
+/// titre produit un slug différent, le fichier .md est renommé physiquement
+/// et le nouveau chemin est retourné à l'UI pour qu'elle rafraîchisse.
+#[tauri::command]
+pub fn cmd_rename_meeting(path: String, new_title: String) -> Result<String, String> {
+    let md_path = std::path::PathBuf::from(&path);
+    if !md_path.exists() {
+        return Err(format!("File not found: {}", path));
+    }
+
+    let new_title = new_title.trim();
+    if new_title.is_empty() {
+        return Err("Nouveau titre vide".into());
+    }
+
+    let new_path = minutes_core::markdown::rename_meeting(&md_path, new_title)
+        .map_err(|e| format!("Rename failed: {}", e))?;
+
+    Ok(new_path.to_string_lossy().to_string())
+}
+
 #[tauri::command]
 pub fn cmd_delete_meeting(
     app: tauri::AppHandle,
