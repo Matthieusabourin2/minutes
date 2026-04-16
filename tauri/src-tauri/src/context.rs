@@ -30,10 +30,39 @@ pub fn create_workspace(config: &Config) -> Result<PathBuf, String> {
         .map_err(|e| format!("Failed to create workspace: {}", e))?;
 
     let meetings_link = workspace.join("meetings");
-    if !meetings_link.exists() {
-        #[cfg(unix)]
-        std::os::unix::fs::symlink(&config.output_dir, &meetings_link)
-            .map_err(|e| format!("Failed to symlink meetings dir: {}", e))?;
+    // Use symlink_metadata rather than exists() — the latter follows symlinks
+    // and returns false for broken links, causing fs::symlink to then fail
+    // with EEXIST (os error 17) because the broken link file is still there.
+    // Scenarios: user changed output_dir after a prior run, or the initial
+    // run was seeded with a literal "~/…" path that never expanded.
+    match meetings_link.symlink_metadata() {
+        Err(_) => {
+            // Nothing there — create a fresh symlink.
+            #[cfg(unix)]
+            std::os::unix::fs::symlink(&config.output_dir, &meetings_link)
+                .map_err(|e| format!("Failed to symlink meetings dir: {}", e))?;
+        }
+        Ok(meta) if meta.file_type().is_symlink() => {
+            // Existing symlink — repair it if it points somewhere else
+            // (broken, or to a stale output_dir).
+            let needs_repair = match std::fs::read_link(&meetings_link) {
+                Ok(target) => target != config.output_dir,
+                Err(_) => true,
+            };
+            if needs_repair {
+                let _ = std::fs::remove_file(&meetings_link);
+                #[cfg(unix)]
+                std::os::unix::fs::symlink(&config.output_dir, &meetings_link).map_err(|e| {
+                    format!("Failed to repair meetings symlink: {}", e)
+                })?;
+            }
+        }
+        Ok(_) => {
+            // A real file or directory (not a symlink) sits here — leave it
+            // alone rather than clobber whatever the user put in their
+            // workspace. Claude will just work without the ~/meetings
+            // shortcut.
+        }
     }
 
     // Skills and agents live in ~/.minutes/.agents/ and are symlinked
