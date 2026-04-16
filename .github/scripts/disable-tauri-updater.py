@@ -30,9 +30,24 @@ def main() -> int:
         return 1
 
     data = json.loads(CONF.read_text(encoding="utf-8"))
+
+    # 1. Disable updater artifact creation at build time. Without this,
+    #    the macOS Tauri build tries to sign a .app.tar.gz at the end
+    #    of bundling and fails when no TAURI_SIGNING_PRIVATE_KEY is set.
     bundle = data.setdefault("bundle", {})
-    before = bundle.get("createUpdaterArtifacts")
+    bundle_before = bundle.get("createUpdaterArtifacts")
     bundle["createUpdaterArtifacts"] = False
+
+    # 2. REMOVE the runtime updater plugin config. Otherwise the shipped
+    #    Artemis app periodically polls upstream silverstein/minutes
+    #    `latest.json`, prompts the user to "upgrade", and on accept
+    #    silently replaces our binary with the upstream signed bundle.
+    #    The upstream bundle has no `artemis-default-config` feature
+    #    flag, so the embedded config + French UI + ProcessCom prompt
+    #    are all wiped. See the field report from the first Mac rollout.
+    plugins = data.setdefault("plugins", {})
+    had_updater = "updater" in plugins
+    plugins.pop("updater", None)
 
     CONF.write_text(
         json.dumps(data, indent=2, ensure_ascii=False) + "\n",
@@ -41,8 +56,9 @@ def main() -> int:
     # ASCII-only output: Python on windows-latest opens stdout as cp1252
     # by default and chokes on Unicode arrows / em-dashes in print().
     print(
-        f"Patched {CONF}: createUpdaterArtifacts {before!r} -> False "
-        "(no updater .tar.gz will be produced / signed)."
+        f"Patched {CONF}:\n"
+        f"  - createUpdaterArtifacts {bundle_before!r} -> False\n"
+        f"  - removed updater plugin config (was present: {had_updater})"
     )
     return 0
 

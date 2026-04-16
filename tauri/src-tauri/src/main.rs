@@ -214,60 +214,26 @@ pub fn update_tray_state_with_mode(app: &tauri::AppHandle, is_active: bool, is_l
 }
 
 // ── Auto-updater ────────────────────────────────────────────
+//
+// Artemis/Catalia: the upstream auto-updater is intentionally
+// NEUTRALIZED in this fork. Reasoning:
+//
+//   * The upstream `latest.json` endpoint advertises the silverstein/
+//     minutes signed bundle. If a user accepts the update, the signed
+//     upstream binary REPLACES our Artemis binary on disk, which has
+//     no `artemis-default-config` feature flag, no embedded API key,
+//     no French UI, and no ProcessCom prompt. In other words, the
+//     auto-update silently undoes every Artemis customization.
+//   * We do NOT operate our own update channel for the pilot. New
+//     versions are hand-delivered by Catalia as fresh installers.
+//
+// `check_for_update` is now a no-op that just logs once for any
+// future contributor scanning the binary. The tray menu item and
+// the `tauri.conf.json` updater plugin config are also removed
+// (see commit fix(artemis): neutralize auto-updater).
 
-async fn check_for_update(app: &tauri::AppHandle) {
-    use tauri_plugin_updater::UpdaterExt;
-
-    let updater = match app.updater() {
-        Ok(u) => u,
-        Err(e) => {
-            eprintln!("[updater] init failed (non-fatal): {}", e);
-            return;
-        }
-    };
-
-    let update = match updater.check().await {
-        Ok(Some(u)) => u,
-        Ok(None) => return,
-        Err(e) => {
-            eprintln!("[updater] check failed (non-fatal): {}", e);
-            return;
-        }
-    };
-
-    let version = update.version.clone();
-    let body = update.body.clone().unwrap_or_default();
-    let download_bytes = commands::fetch_update_download_size(&update.download_url).await;
-    eprintln!(
-        "[updater] v{} available (check only, no download yet)",
-        version
-    );
-
-    // Store pending update info in AppState
-    if let Some(state) = app.try_state::<commands::AppState>() {
-        if let Ok(mut pending) = state.pending_update.lock() {
-            *pending = Some(commands::PendingUpdate {
-                version: version.clone(),
-                body: body.clone(),
-                download_bytes,
-            });
-        }
-
-        // Defer notification if any session activity is in progress.
-        // The pending_update is stored either way, so it will be surfaced
-        // by the 30s deferred poll once the session ends.
-        if state.recording.load(Ordering::Relaxed)
-            || state.starting.load(Ordering::Relaxed)
-            || state.processing.load(Ordering::Relaxed)
-            || state.live_transcript_active.load(Ordering::Relaxed)
-            || state.dictation_active.load(Ordering::Relaxed)
-        {
-            eprintln!("[updater] deferring notification (session active)");
-            return;
-        }
-    }
-
-    notify_update_available(app, &version, &body, download_bytes);
+async fn check_for_update(_app: &tauri::AppHandle) {
+    eprintln!("[updater] disabled in Artemis fork — no update channel");
 }
 
 fn notify_update_available(
@@ -1046,13 +1012,12 @@ fn main() {
                 None::<&str>,
             )?;
             let screen_share_item_ref = screen_share_item.clone();
-            let check_update_item = MenuItem::with_id(
-                app,
-                "check-for-updates",
-                "Rechercher des mises à jour",
-                true,
-                None::<&str>,
-            )?;
+            // Artemis/Catalia: the upstream "Check for Updates" menu item
+            // is intentionally REMOVED. Our fork has no update channel —
+            // accepting an update would silently replace the Artemis
+            // binary with the upstream signed bundle and wipe the
+            // embedded config, French UI, and ProcessCom prompt. New
+            // versions are hand-delivered by Catalia as fresh installers.
             let sep2 = MenuItem::with_id(app, "sep2", "──────────", false, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quitter Minutes", true, None::<&str>)?;
 
@@ -1071,7 +1036,7 @@ fn main() {
             if commands::supports_tray_artifact_copy() {
                 menu.append_items(&[&paste_summary_item, &paste_transcript_item])?;
             }
-            menu.append_items(&[&sep2, &screen_share_item, &check_update_item, &quit_item])?;
+            menu.append_items(&[&sep2, &screen_share_item, &quit_item])?;
 
             let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
                 .expect("load tray icon");
