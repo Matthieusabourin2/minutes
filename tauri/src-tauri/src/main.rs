@@ -1458,6 +1458,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::cmd_status,
+            commands::cmd_chat_artifact,
             commands::cmd_processing_jobs,
             commands::cmd_list_meetings,
             commands::cmd_search,

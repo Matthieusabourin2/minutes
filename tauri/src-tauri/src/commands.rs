@@ -2466,6 +2466,23 @@ fn find_section_content<'a>(sections: &'a [MeetingSection], heading: &str) -> Op
         .filter(|content| !content.trim().is_empty())
 }
 
+/// Artemis/Catalia: try a list of heading candidates in order. Lets the
+/// artifact templates pick up French ProcessCom sections (e.g. "Résumé",
+/// "Actions") first, then fall back to upstream English labels
+/// ("Summary", "Action Items") for meetings that predate the custom
+/// prompt.
+fn find_first_section<'a>(
+    sections: &'a [MeetingSection],
+    candidates: &[&str],
+) -> Option<&'a str> {
+    for candidate in candidates {
+        if let Some(c) = find_section_content(sections, candidate) {
+            return Some(c);
+        }
+    }
+    None
+}
+
 fn artifact_directory(config: &Config) -> Result<PathBuf, String> {
     let workspace = crate::context::create_workspace(config)?;
     let artifacts = workspace.join("artifacts");
@@ -2659,24 +2676,31 @@ fn build_artifact_template(
     let meeting_title = frontmatter.title.trim();
     let slug = artifact_slug(meeting_title);
     let title = match kind {
-        "follow-up-email" => format!("Follow-up Email - {}", meeting_title),
-        "meeting-brief" => format!("Meeting Brief - {}", meeting_title),
-        "debrief-memo" => format!("Debrief Memo - {}", meeting_title),
-        "decision-memo" => format!("Decision Memo - {}", meeting_title),
+        "follow-up-email" => format!("E-mail de relance — {}", meeting_title),
+        "meeting-brief" => format!("Brief de préparation — {}", meeting_title),
+        "debrief-memo" => format!("Mémo de débrief — {}", meeting_title),
+        "decision-memo" => format!("Mémo de décision — {}", meeting_title),
         other => {
             return Err(format!(
-            "Unknown artifact template '{}'. Use follow-up-email, meeting-brief, debrief-memo, or decision-memo.",
+            "Template de brouillon inconnu « {} ». Utilise follow-up-email, meeting-brief, debrief-memo ou decision-memo.",
             other
         ))
         }
     };
 
+    // Artemis/Catalia: resolve sections against French ProcessCom labels
+    // first, English fallbacks second. Lets the same template render
+    // cleanly whether the meeting was processed with our custom prompt
+    // or the upstream stock prompt.
     let summary = meeting_section_bullets(
-        find_section_content(sections, "Summary"),
-        "- Add a concise recap of what happened.\n- Pull the strongest 2-3 moments from the meeting.",
+        find_first_section(sections, &["Résumé", "Summary"]),
+        "- [Reprends 3-5 points clés du rendez-vous]",
     );
+    let profil_client = find_first_section(sections, &["Profil client"]);
+    let analyse_commerciale = find_first_section(sections, &["Analyse commerciale"]);
+    let prestations = find_first_section(sections, &["Prestations identifiées"]);
     let decisions = if frontmatter.decisions.is_empty() {
-        "- Add any decisions that should carry forward.".to_string()
+        "- [Aucune décision explicite à ce stade]".to_string()
     } else {
         frontmatter
             .decisions
@@ -2686,7 +2710,7 @@ fn build_artifact_template(
             .join("\n")
     };
     let action_items = if frontmatter.action_items.is_empty() {
-        "- Add the next actions and owners.".to_string()
+        "- [À compléter avec les prochaines actions et leur responsable]".to_string()
     } else {
         frontmatter
             .action_items
@@ -2695,23 +2719,36 @@ fn build_artifact_template(
                 let due = item
                     .due
                     .as_ref()
-                    .map(|value| format!(" (due {})", value))
+                    .map(|value| format!(" (échéance {})", value))
                     .unwrap_or_default();
-                format!("- {}: {}{}", item.assignee, item.task, due)
+                format!("- {} : {}{}", item.assignee, item.task, due)
             })
             .collect::<Vec<_>>()
             .join("\n")
     };
     let open_questions = meeting_section_bullets(
-        find_section_content(sections, "Open Questions"),
-        "- Add unresolved questions worth carrying into the next conversation.",
+        find_first_section(sections, &["Open Questions", "Questions ouvertes"]),
+        "- [Points à clarifier lors du prochain échange]",
     );
     let attendees = if frontmatter.attendees.is_empty() {
-        "_Add attendees if needed._".to_string()
+        "[À compléter]".to_string()
     } else {
         frontmatter.attendees.join(", ")
     };
 
+    // Optional section helper — returns empty string when the section
+    // doesn't exist so we don't print empty blocks in the draft.
+    let optional_block = |label: &str, content: Option<&str>| -> String {
+        match content {
+            Some(c) if !c.trim().is_empty() => format!("\n{} :\n{}\n", label, c.trim()),
+            _ => String::new(),
+        }
+    };
+
+    // Frontmatter is kept for metadata/traceability but we use plain-text
+    // body below (no # / ## markdown headers) so commercials can copy-paste
+    // the draft directly into Gmail, Outlook, Word, etc. without seeing
+    // raw markdown syntax.
     let frontmatter_block = format!(
         "---\ntitle: {}\nartifact_type: {}\nsource_meeting: {}\nsource_title: {}\nsource_date: {}\nlinked_slug: {}\n---\n\n",
         title,
@@ -2723,18 +2760,104 @@ fn build_artifact_template(
     );
 
     let body = match kind {
-        "follow-up-email" => format!(
-            "# Subject\n\nFollow-up: {meeting_title}\n\n# Email Draft\n\nHi team,\n\nThanks again for the conversation today. Here is the clean follow-up from the meeting.\n\n## Key Points\n\n{summary}\n\n## Decisions\n\n{decisions}\n\n## Action Items\n\n{action_items}\n\n## Open Questions\n\n{open_questions}\n\nBest,\n\n[Your name]\n"
-        ),
+        "follow-up-email" => {
+            let profil_line = profil_client
+                .map(|c| c.trim().to_string())
+                .unwrap_or_default();
+            format!(
+                "Objet : Suite à notre échange — {meeting_title}\n\
+                \n\
+                Bonjour,\n\
+                \n\
+                Je reviens vers vous suite à notre échange. Voici un récapitulatif \
+                des points que nous avons abordés ensemble.\n\
+                \n\
+                Points clés de notre échange :\n{summary}\n\
+                {profil}\
+                Prochaines étapes :\n{action_items}\n\
+                \n\
+                Points restant à clarifier :\n{open_questions}\n\
+                \n\
+                Je reste à votre disposition pour avancer sur votre projet et \
+                répondre à vos questions. N'hésitez pas à me contacter.\n\
+                \n\
+                Cordialement,\n\
+                [Votre prénom et nom]\n\
+                Artemis Paysages\n\
+                [Votre téléphone]\n",
+                profil = if profil_line.is_empty() { String::new() } else {
+                    format!("\nVotre projet tel que nous l'avons compris :\n{}\n", profil_line)
+                },
+            )
+        }
         "meeting-brief" => format!(
-            "# Objective\n\nState what this next meeting needs to accomplish.\n\n## Context\n\n- Source meeting: [{meeting_title}]({})\n- Attendees: {attendees}\n\n## What Happened Last Time\n\n{summary}\n\n## Decisions Already Made\n\n{decisions}\n\n## Open Questions\n\n{open_questions}\n\n## Suggested Agenda\n\n- Start with the highest-stakes question\n- Confirm any blocked action items\n- End with explicit owners and dates\n\n## Notes\n\n- Add prep notes here.\n",
-            meeting_path.display()
+            "Brief de préparation — {meeting_title}\n\
+            \n\
+            Rendez-vous source : {meeting_title}\n\
+            Date : {date}\n\
+            Participants : {attendees}\n\
+            \n\
+            Objectif du prochain rendez-vous :\n\
+            [À compléter — quelle est la décision que vise ce prochain échange ?]\n\
+            \n\
+            Ce qui s'est passé la dernière fois :\n{summary}\n\
+            {profil}\
+            Décisions déjà prises :\n{decisions}\n\
+            \n\
+            Questions à poser lors du prochain échange :\n{open_questions}\n\
+            {commerciale}\
+            Déroulé suggéré :\n\
+            - Démarrer par la question la plus sensible identifiée ci-dessus\n\
+            - Confirmer les actions bloquées ou en retard\n\
+            - Conclure avec des responsables et des échéances explicites\n\
+            \n\
+            Notes de préparation :\n\
+            [Ajoute ici tes notes avant le rendez-vous]\n",
+            date = frontmatter.date.format("%d/%m/%Y"),
+            profil = optional_block("Profil client identifié", profil_client),
+            commerciale = optional_block("Points de vigilance commerciale", analyse_commerciale),
         ),
         "debrief-memo" => format!(
-            "# Summary\n\n{summary}\n\n## Decisions\n\n{decisions}\n\n## Action Items\n\n{action_items}\n\n## Open Questions\n\n{open_questions}\n\n## Next Move\n\n- Write the next action the team should take from this conversation.\n"
+            "Mémo de débrief — {meeting_title}\n\
+            Date : {date}\n\
+            Participants : {attendees}\n\
+            \n\
+            Résumé :\n{summary}\n\
+            {profil}\
+            Décisions :\n{decisions}\n\
+            \n\
+            Actions à réaliser :\n{action_items}\n\
+            \n\
+            Questions à clarifier :\n{open_questions}\n\
+            {commerciale}\
+            {presta}\
+            Prochaine étape :\n\
+            [Quelle action concrète déclencher maintenant ?]\n",
+            date = frontmatter.date.format("%d/%m/%Y"),
+            profil = optional_block("Profil client", profil_client),
+            commerciale = optional_block("Analyse commerciale", analyse_commerciale),
+            presta = optional_block("Prestations identifiées", prestations),
         ),
         "decision-memo" => format!(
-            "# Decision\n\nWrite the one decision this memo is locking in.\n\n## Why This Decision\n\n{summary}\n\n## Decision Details\n\n{decisions}\n\n## Implications\n\n- Add the operational, product, or relationship implications of this decision.\n\n## Action Items\n\n{action_items}\n\n## Open Questions / Risks\n\n{open_questions}\n"
+            "Mémo de décision — {meeting_title}\n\
+            Date : {date}\n\
+            \n\
+            Décision actée :\n\
+            [Écris en une phrase la décision que ce mémo verrouille]\n\
+            \n\
+            Pourquoi cette décision :\n{summary}\n\
+            \n\
+            Détail de la décision :\n{decisions}\n\
+            \n\
+            Conséquences et implications :\n\
+            - [Impact opérationnel — planning, ressources, chantier]\n\
+            - [Impact commercial — relation client, futurs devis]\n\
+            - [Autres implications à anticiper]\n\
+            \n\
+            Actions qui découlent de cette décision :\n{action_items}\n\
+            \n\
+            Questions ouvertes et risques :\n{open_questions}\n",
+            date = frontmatter.date.format("%d/%m/%Y"),
         ),
         _ => unreachable!(),
     };
@@ -6217,7 +6340,7 @@ mod tests {
         assert!(title.contains("Pricing Review"));
         assert!(body.contains("source_meeting: /tmp/pricing-review.md"));
         assert!(body.contains("Ship the new pricing page"));
-        assert!(body.contains("Mat: Send follow-up"));
+        assert!(body.contains("Mat : Send follow-up"));
     }
 
     #[test]
@@ -6267,10 +6390,10 @@ mod tests {
         )
         .unwrap();
 
-        assert!(title.contains("Decision Memo"));
-        assert!(body.contains("# Decision"));
-        assert!(body.contains("## Decision Details"));
-        assert!(body.contains("## Implications"));
+        assert!(title.contains("Mémo de décision"));
+        assert!(body.contains("Décision actée :"));
+        assert!(body.contains("Détail de la décision :"));
+        assert!(body.contains("Conséquences et implications :"));
         assert!(body.contains("Ship the new pricing page"));
     }
 
@@ -8960,6 +9083,63 @@ fn extract_current_meeting_path(line: &str) -> Option<&str> {
         return Some(line);
     }
     None
+}
+
+// ── Artemis/Catalia chatbot (scoped to one meeting) ──────────────
+
+/// Send a user turn to Claude scoped to a single meeting artifact.
+/// The meeting content is injected into the system prompt (see
+/// `minutes_core::summarize::chat_about_meeting`) so Claude can only
+/// reason about THIS meeting and refuses to wander off-topic.
+///
+/// Uses the Anthropic API key from `[summarization].api_key` in the
+/// Artemis-embedded config.toml — no Claude CLI, no Node, no extra
+/// install on the commercial's machine.
+#[tauri::command]
+pub async fn cmd_chat_artifact(
+    meeting_path: String,
+    messages: Vec<minutes_core::summarize::ChatMessage>,
+) -> Result<String, String> {
+    // Load config (picks up the Artemis-seeded config.toml with api_key).
+    let config = minutes_core::config::Config::load();
+
+    // Read the meeting .md from disk. Keeps the chatbot's knowledge
+    // up-to-date if Claude previously edited the artifact.
+    let meeting_content = std::fs::read_to_string(&meeting_path)
+        .map_err(|e| format!("Lecture du compte-rendu impossible ({}): {}", meeting_path, e))?;
+
+    if meeting_content.trim().is_empty() {
+        return Err("Le compte-rendu est vide.".to_string());
+    }
+
+    if messages.is_empty() {
+        return Err("Aucun message à envoyer.".to_string());
+    }
+
+    // Hard cap on conversation length to bound API cost (token cost
+    // grows linearly with message history). 30 turns ~= a solid
+    // brainstorm; past that, suggest starting a fresh conversation.
+    if messages.len() > 30 {
+        return Err(
+            "Conversation trop longue (30 tours max). Efface et recommence si besoin.".to_string(),
+        );
+    }
+
+    // Delegate to minutes-core — blocking API call wrapped in a
+    // tokio task so we don't block the Tauri runtime.
+    let config_clone = config.clone();
+    let content_clone = meeting_content.clone();
+    let messages_clone = messages.clone();
+    tokio::task::spawn_blocking(move || {
+        minutes_core::summarize::chat_about_meeting(
+            &config_clone,
+            &content_clone,
+            &messages_clone,
+        )
+        .map_err(|e| format!("Erreur Claude : {}", e))
+    })
+    .await
+    .map_err(|e| format!("Tâche interrompue : {}", e))?
 }
 
 #[cfg(test)]

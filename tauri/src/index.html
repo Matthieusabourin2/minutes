@@ -3521,6 +3521,91 @@
       transition: transform 0.17s ease, background-color 0.17s ease, color 0.17s ease, box-shadow 0.17s ease;
     }
 
+    /* ── Artemis embedded chatbot ── */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 14px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--bg-primary, #fafafa);
+      border-radius: 12px;
+      min-height: 0;
+    }
+    .chat-empty {
+      margin: auto 8px;
+      text-align: center;
+      color: var(--text-secondary, #888);
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 24px 12px;
+    }
+    .chat-bubble {
+      max-width: 86%;
+      padding: 10px 13px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+    .chat-bubble.user {
+      align-self: flex-end;
+      background: var(--accent, #c96b4e);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-bubble.assistant {
+      align-self: flex-start;
+      background: var(--bg-secondary, #efeae2);
+      color: var(--text-primary, #1b1b1b);
+      border-bottom-left-radius: 4px;
+    }
+    .chat-bubble.error {
+      align-self: stretch;
+      background: #fbe9e7;
+      color: #b33a1a;
+      border: 1px solid #e8a090;
+      font-size: 12.5px;
+    }
+    .chat-bubble.loading {
+      align-self: flex-start;
+      background: var(--bg-secondary, #efeae2);
+      color: var(--text-secondary, #888);
+      font-style: italic;
+    }
+    .chat-composer {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      padding: 8px 4px 0;
+    }
+    .chat-composer textarea {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid var(--border, #dcd6cc);
+      border-radius: 12px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      max-height: 140px;
+      background: var(--bg-primary, #fafafa);
+      color: var(--text-primary, #1b1b1b);
+      outline: none;
+    }
+    .chat-composer textarea:focus {
+      border-color: var(--accent, #c96b4e);
+    }
+    .chat-hint {
+      padding: 6px 10px 4px;
+      font-size: 11.5px;
+      color: var(--text-secondary, #888);
+      text-align: center;
+      opacity: 0.85;
+    }
+
     .audio-viz .bar {
       opacity: 0.62;
     }
@@ -3886,38 +3971,45 @@
   <!-- ── Draggable split handle ── -->
   <div class="split-handle" id="split-handle"></div>
 
-  <!-- ── Recall panel (right side, embedded terminal) ── -->
+  <!-- ── Catalia/Artemis: scoped chatbot panel (replaces upstream Recall CLI panel) ── -->
   <div class="recall-panel" id="recall-panel">
     <div class="recall-header">
       <div class="recall-header-info">
-        <div class="recall-phase-dot" id="recall-dot" aria-label="Phase: Recall"></div>
-        <span class="recall-phase-label" id="recall-phase-label">Recall</span>
-        <span class="recall-context-label" id="recall-context-label"></span>
+        <div class="recall-phase-dot" id="recall-dot" aria-label="Assistant"></div>
+        <span class="recall-phase-label" id="recall-phase-label">Assistant</span>
+        <span class="recall-context-label" id="chat-context-label"></span>
       </div>
       <div class="recall-header-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-recall-weekly">Hebdo</button>
-        <button class="btn btn-secondary btn-sm recall-end-btn" id="btn-recall-end">Terminer la session</button>
+        <button class="btn btn-secondary btn-sm" id="btn-chat-clear" title="Vider la conversation courante">Vider</button>
         <button class="recall-close" id="btn-recall-close" title="Fermer le panneau">&times;</button>
       </div>
     </div>
-    <div class="recall-note" id="recall-note">
-      <div class="recall-note-row">
-        <input type="text" id="recall-note-input" placeholder="Note rapide…" />
-        <button class="btn btn-secondary btn-sm" id="btn-recall-note-save">Sauver</button>
+
+    <div class="chat-messages" id="chat-messages" aria-live="polite">
+      <div class="chat-empty" id="chat-empty">
+        Sélectionne un compte-rendu puis pose une question : follow-up client, argumentaire ProcessCom, prochaine relance, points à clarifier…
       </div>
     </div>
-    <div class="recall-status" id="recall-loading">
-      <div class="processing-spinner" aria-hidden="true"></div>
-      <span>Démarrage de l'assistant…</span>
+
+    <div class="chat-composer" id="chat-composer">
+      <textarea id="chat-input" rows="2" placeholder="Pose une question sur ce rendez-vous…"></textarea>
+      <button class="btn btn-primary btn-sm" id="btn-chat-send" disabled>Envoyer</button>
     </div>
-    <div class="recall-weekly-view" id="recall-weekly-view">
-      <pre id="recall-weekly-content">Chargement du résumé hebdomadaire…</pre>
+    <div class="chat-hint">⌘+Entrée pour envoyer · L'assistant ne répond qu'à propos du compte-rendu ouvert.</div>
+
+    <!-- Hidden legacy nodes kept as no-ops for pre-existing JS references.
+         The upstream Recall CLI / PTY / weekly-view logic is disabled in
+         the Artemis fork — we ship an embedded chatbot instead. -->
+    <div id="recall-note" hidden>
+      <input type="text" id="recall-note-input" />
+      <button id="btn-recall-note-save" hidden></button>
     </div>
-    <div class="recall-terminal hidden" id="recall-terminal-container"></div>
-    <div class="recall-exit-banner" id="recall-exit-banner">
-      Session terminée.
-      <button class="btn btn-secondary btn-sm" id="btn-recall-restart">Redémarrer</button>
-    </div>
+    <div id="recall-loading" hidden><span></span></div>
+    <div id="recall-weekly-view" hidden><pre id="recall-weekly-content"></pre></div>
+    <div id="recall-terminal-container" hidden></div>
+    <div id="recall-exit-banner" hidden><button id="btn-recall-restart" hidden></button></div>
+    <button id="btn-recall-weekly" hidden></button>
+    <button id="btn-recall-end" hidden></button>
   </div>
 
   <!-- In-app meeting detail view -->
@@ -8386,57 +8478,12 @@
       }
     }
 
-    // ── Open Recall (spawn PTY if needed, then expand) ──
+    // ── Open chatbot panel (Artemis: no PTY, no Claude CLI — embedded chat) ──
     async function openRecall(mode, meetingPath) {
-      recallLoading.classList.add('active');
-      recallTerminalContainer.classList.add('hidden');
-      recallExitBanner.classList.remove('active');
-
       await expandRecallPanel();
-
-      // If the panel was already expanded, expandRecallPanel bailed out
-      // and skipped initRecallTerminal. Ensure it's initialized.
-      initRecallTerminal();
-      await registerPtyListeners();
-
-      try {
-        const opts = { mode };
-        if (meetingPath) opts.meetingPath = meetingPath;
-        await invoke('cmd_spawn_terminal', opts);
-        recallPtyAlive = true;
-        recallEndBtn.classList.add('active');
-        if (mode === 'assistant' && !meetingPath) {
-          try {
-            const bundle = await invoke('cmd_proactive_context_bundle');
-            recallContextLabel.textContent = bundle.summary ? `\u2014 ${bundle.summary}` : '';
-          } catch (contextError) {
-            console.error('Recall proactive context:', contextError);
-          }
-        }
-      } catch (e) {
-        const msg = typeof e === 'string' ? e : String(e);
-        if (msg.includes('already running') || msg.includes('Already')) {
-          recallPtyAlive = true;
-          recallLoading.classList.remove('active');
-          recallTerminalContainer.classList.remove('hidden');
-          recallEndBtn.classList.add('active');
-          // Re-fit after reveal so xterm uses the full panel width
-          if (recallFitAddon) {
-            requestAnimationFrame(() => {
-              recallFitAddon.fit();
-              if (recallPtyAlive && recallTerminal) {
-                invoke('cmd_pty_resize', {
-                  sessionId: SESSION_ID,
-                  cols: recallTerminal.cols,
-                  rows: recallTerminal.rows,
-                }).catch(() => { });
-              }
-            });
-          }
-        } else {
-          console.error('Recall spawn:', e);
-          recallLoading.querySelector('span').textContent = 'Impossible de démarrer : ' + msg;
-        }
+      // Load the chat for the requested meeting (or the most recent one).
+      if (window.ArtemisChat) {
+        window.ArtemisChat.openForMeeting(meetingPath);
       }
     }
 
@@ -9811,6 +9858,211 @@
           });
         }, 650);
       }
+    })();
+
+    // ═════════════════════════════════════════════════════════════════
+    // ArtemisChat — embedded chatbot, scoped to one meeting artifact
+    // Replaces the upstream Recall PTY panel. No Claude CLI, no Node,
+    // no local install. Uses the Catalia API key embedded in config.toml.
+    // ═════════════════════════════════════════════════════════════════
+    window.ArtemisChat = (function () {
+      const messagesEl = document.getElementById('chat-messages');
+      const emptyEl = document.getElementById('chat-empty');
+      const inputEl = document.getElementById('chat-input');
+      const sendBtn = document.getElementById('btn-chat-send');
+      const clearBtn = document.getElementById('btn-chat-clear');
+      const contextLabel = document.getElementById('chat-context-label');
+      const MAX_TURNS = 30;
+
+      let currentMeetingPath = null;
+      let conversation = []; // [{role, content}]
+      let sending = false;
+
+      function storageKey(path) {
+        return 'artemis.chat.' + path;
+      }
+
+      function loadConversation(path) {
+        try {
+          const raw = localStorage.getItem(storageKey(path));
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) { }
+        return [];
+      }
+
+      function persistConversation() {
+        if (!currentMeetingPath) return;
+        try {
+          localStorage.setItem(
+            storageKey(currentMeetingPath),
+            JSON.stringify(conversation)
+          );
+        } catch (_) { }
+      }
+
+      function clearPersisted(path) {
+        try { localStorage.removeItem(storageKey(path)); } catch (_) { }
+      }
+
+      function meetingLabelFromPath(path) {
+        if (!path) return '';
+        const basename = path.split('/').pop() || path;
+        return basename.replace(/\.md$/i, '').replace(/^[0-9-]+-/, '').replace(/-/g, ' ');
+      }
+
+      function render() {
+        messagesEl.innerHTML = '';
+
+        if (!currentMeetingPath) {
+          const p = document.createElement('div');
+          p.className = 'chat-empty';
+          p.textContent = 'Ouvre un compte-rendu dans la liste pour discuter avec l\'assistant à son sujet.';
+          messagesEl.appendChild(p);
+          sendBtn.disabled = true;
+          inputEl.disabled = true;
+          inputEl.placeholder = 'Sélectionne d\'abord un compte-rendu…';
+          contextLabel.textContent = '';
+          return;
+        }
+
+        contextLabel.textContent = '— ' + meetingLabelFromPath(currentMeetingPath);
+        inputEl.disabled = false;
+        inputEl.placeholder = 'Pose une question sur ce rendez-vous…';
+
+        if (conversation.length === 0) {
+          const p = document.createElement('div');
+          p.className = 'chat-empty';
+          p.innerHTML = 'Que veux-tu faire avec ce compte-rendu ?<br><br>' +
+            '<span style="font-size:12px;opacity:.75">Exemples : « Rédige un e-mail de follow-up à envoyer demain », ' +
+            '« Quelles objections anticiper au prochain RDV ? », ' +
+            '« Propose une trame de devis basée sur les prestations identifiées »</span>';
+          messagesEl.appendChild(p);
+        } else {
+          conversation.forEach(m => {
+            const b = document.createElement('div');
+            b.className = 'chat-bubble ' + (m.role === 'user' ? 'user' : 'assistant');
+            b.textContent = m.content;
+            messagesEl.appendChild(b);
+          });
+        }
+
+        sendBtn.disabled = sending || !inputEl.value.trim();
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function appendBubble(kind, text) {
+        if (emptyEl && emptyEl.parentNode === messagesEl) {
+          messagesEl.removeChild(emptyEl);
+        }
+        // Also remove any transient chat-empty that render() put in
+        [...messagesEl.querySelectorAll('.chat-empty')].forEach(n => n.remove());
+        const b = document.createElement('div');
+        b.className = 'chat-bubble ' + kind;
+        b.textContent = text;
+        messagesEl.appendChild(b);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return b;
+      }
+
+      async function send() {
+        if (sending) return;
+        const text = inputEl.value.trim();
+        if (!text || !currentMeetingPath) return;
+
+        if (conversation.length >= MAX_TURNS) {
+          appendBubble('error', 'Conversation trop longue (30 tours max). Clique « Vider » pour recommencer.');
+          return;
+        }
+
+        sending = true;
+        sendBtn.disabled = true;
+        inputEl.disabled = true;
+
+        conversation.push({ role: 'user', content: text });
+        appendBubble('user', text);
+        inputEl.value = '';
+        persistConversation();
+
+        const loadingBubble = appendBubble('loading', 'L\'assistant réfléchit…');
+
+        try {
+          const reply = await invoke('cmd_chat_artifact', {
+            meetingPath: currentMeetingPath,
+            messages: conversation,
+          });
+          loadingBubble.remove();
+          const clean = (reply || '').trim();
+          if (!clean) {
+            appendBubble('error', 'Réponse vide de l\'assistant.');
+          } else {
+            conversation.push({ role: 'assistant', content: clean });
+            appendBubble('assistant', clean);
+            persistConversation();
+          }
+        } catch (e) {
+          loadingBubble.remove();
+          const msg = typeof e === 'string' ? e : (e && e.message) || String(e);
+          appendBubble('error', msg);
+          // Roll back the user turn so the user can retry without re-typing
+          conversation.pop();
+          persistConversation();
+        } finally {
+          sending = false;
+          inputEl.disabled = false;
+          sendBtn.disabled = !inputEl.value.trim();
+          inputEl.focus();
+        }
+      }
+
+      function openForMeeting(meetingPath) {
+        // Fallback: if no path supplied, keep whatever was last opened
+        // (e.g. user clicked footer "Assistant" without selecting a meeting).
+        if (meetingPath && meetingPath !== currentMeetingPath) {
+          currentMeetingPath = meetingPath;
+          conversation = loadConversation(meetingPath);
+        } else if (!currentMeetingPath && !meetingPath) {
+          // Try to find the most recently opened meeting from detail state.
+          const detailState = document.getElementById('detail-overlay');
+          const currentMeetingEl = detailState && detailState.dataset && detailState.dataset.currentMeeting;
+          if (currentMeetingEl) {
+            currentMeetingPath = currentMeetingEl;
+            conversation = loadConversation(currentMeetingEl);
+          }
+        }
+        render();
+        setTimeout(() => { if (!inputEl.disabled) inputEl.focus(); }, 100);
+      }
+
+      // ── Wire up ──
+      sendBtn.addEventListener('click', () => { send(); });
+
+      inputEl.addEventListener('input', () => {
+        sendBtn.disabled = sending || !inputEl.value.trim();
+      });
+
+      inputEl.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+          e.preventDefault();
+          send();
+        }
+      });
+
+      clearBtn.addEventListener('click', () => {
+        if (!currentMeetingPath) return;
+        if (!confirm('Vider la conversation courante ?')) return;
+        conversation = [];
+        clearPersisted(currentMeetingPath);
+        render();
+      });
+
+      render();
+
+      return {
+        openForMeeting,
+        currentMeetingPath: () => currentMeetingPath,
+      };
     })();
   </script>
 </body>

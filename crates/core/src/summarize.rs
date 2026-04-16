@@ -2011,6 +2011,92 @@ fn parse_speaker_mapping(
     results
 }
 
+// ── Artemis/Catalia: scoped chatbot against a single meeting ──
+//
+// Powers the Tauri-embedded chat panel. One artifact at a time:
+// Franck opens a meeting and chats about THAT meeting only. The
+// Anthropic API key is resolved the same way as summarization
+// (config.toml → env var fallback). System prompt is restrictive
+// so Claude stays on-topic and refuses to invent or wander.
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ChatMessage {
+    pub role: String, // "user" | "assistant"
+    pub content: String,
+}
+
+const CHAT_SYSTEM_PROMPT_TEMPLATE: &str = r#"Tu es l'assistant commercial d'Artemis Paysages, intégré au compte-rendu de rendez-vous ci-dessous. Tu aides un commercial à exploiter concrètement ce compte-rendu.
+
+Tu peux aider à :
+- Préparer un e-mail de follow-up à envoyer au prospect
+- Suggérer des arguments commerciaux adaptés au profil ProcessCom identifié
+- Préparer la prochaine relance ou le prochain rendez-vous
+- Reformuler une objection pour mieux la traiter
+- Identifier des points à clarifier avec le prospect
+- Proposer une trame de devis
+- Faire un récapitulatif synthétique pour la direction
+
+RÈGLES IMPORTANTES :
+1. Réponds toujours en français, de façon concise et actionnable.
+2. Si une demande n'a RIEN à voir avec ce rendez-vous précis, refuse poliment et recentre la conversation sur le compte-rendu. Par exemple, si on te demande la météo, une recette de cuisine, ou des questions générales sur le paysagisme qui ne sont pas liées à ce prospect — décline.
+3. N'invente pas d'informations qui ne sont pas dans le compte-rendu. Si une info manque, dis-le explicitement.
+4. Préserve le tutoiement si le commercial t'en utilise, sinon vouvoiement.
+5. Quand tu cites le prospect, appuie-toi sur les verbatims de la transcription.
+
+─── COMPTE-RENDU DU RENDEZ-VOUS ───
+
+"#;
+
+/// Build the system prompt by appending the meeting artifact to the template.
+fn build_chat_system_prompt(meeting_content: &str) -> String {
+    let mut out = String::with_capacity(CHAT_SYSTEM_PROMPT_TEMPLATE.len() + meeting_content.len());
+    out.push_str(CHAT_SYSTEM_PROMPT_TEMPLATE);
+    out.push_str(meeting_content);
+    out
+}
+
+/// Chat with Claude about a single meeting artifact. Uses the same
+/// `resolve_anthropic_key` resolution as summarization. Returns the
+/// assistant's reply text.
+pub fn chat_about_meeting(
+    config: &Config,
+    meeting_content: &str,
+    messages: &[ChatMessage],
+) -> Result<String, Box<dyn std::error::Error>> {
+    if messages.is_empty() {
+        return Err("no messages provided".into());
+    }
+
+    let api_key = resolve_anthropic_key(config)?;
+    let system_prompt = build_chat_system_prompt(meeting_content);
+
+    // Claude Messages API expects messages as [{role, content}] where
+    // role alternates user/assistant and ends on user.
+    let api_messages: Vec<serde_json::Value> = messages
+        .iter()
+        .map(|m| serde_json::json!({"role": m.role, "content": m.content}))
+        .collect();
+
+    let body = serde_json::json!({
+        "model": CLAUDE_MODEL,
+        "max_tokens": 1024,
+        "system": system_prompt,
+        "messages": api_messages,
+    });
+
+    let response = http_post(
+        "https://api.anthropic.com/v1/messages",
+        &body,
+        &[
+            ("x-api-key", &api_key),
+            ("anthropic-version", "2023-06-01"),
+            ("content-type", "application/json"),
+        ],
+    )?;
+
+    extract_claude_text(&response)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
