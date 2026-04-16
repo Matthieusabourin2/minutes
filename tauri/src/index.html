@@ -2127,18 +2127,23 @@
       box-shadow: 0 24px 60px var(--shadow-strong);
     }
 
+    /* Artemis: header en stack vertical pour garantir que le titre
+       prenne toujours toute la largeur (sinon, sur popup étroit avec
+       les 4 boutons d'action à droite, le titre se retrouvait
+       compressé à 2 lettres + ellipsis et les chips meta empilaient
+       verticalement). */
     .detail-header {
-      padding: 18px 20px 14px;
+      padding: 18px 24px 14px;
       border-bottom: 1px solid var(--border);
       display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
+      flex-direction: column;
+      gap: 10px;
     }
 
     .detail-header-copy {
       min-width: 0;
-      flex: 1;
+      width: 100%;
+      padding-right: 36px; /* réserve la place du bouton × en haut à droite */
     }
 
     .detail-close-x {
@@ -2166,6 +2171,39 @@
       color: var(--text-secondary);
     }
 
+    /* Artemis: bouton "← Retour" affiché en haut de la popup quand on
+       a navigué depuis un autre RDV via Source/Ouvrir. Discret par
+       défaut, plus visible au hover. */
+    .detail-back {
+      align-self: flex-start; /* ne prend que la largeur du contenu */
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 14px 24px 0 24px;
+      padding: 6px 12px 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary, var(--text-tertiary));
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      -webkit-app-region: no-drag;
+    }
+    .detail-back:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary, var(--text-secondary));
+      border-color: var(--accent, var(--text-secondary));
+    }
+    .detail-back-arrow {
+      font-size: 14px;
+      line-height: 1;
+    }
+    .detail-back-label {
+      white-space: nowrap;
+    }
+
     .detail-close-x:focus-visible {
       outline: none;
       background: var(--bg-hover);
@@ -2180,9 +2218,10 @@
       letter-spacing: -0.2px;
       color: var(--text);
       margin-bottom: 6px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      /* Artemis: titre wrap sur plusieurs lignes plutôt que tronqué.
+         Avec le header en stack vertical, il a maintenant la place. */
+      word-wrap: break-word;
+      line-height: 1.3;
     }
 
     .detail-meta {
@@ -4080,6 +4119,13 @@
   <div class="detail-overlay" id="detail-overlay">
     <div class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detail-title">
       <button class="detail-close-x" id="btn-detail-close" aria-label="Fermer">&times;</button>
+      <!-- Artemis: bouton back, visible uniquement quand on a navigué
+           depuis un autre RDV via "Source" ou "Ouvrir" (pile non vide).
+           Cliquer dépile et ramène au RDV précédent. -->
+      <button class="detail-back" id="btn-detail-back" hidden>
+        <span class="detail-back-arrow">&larr;</span>
+        <span class="detail-back-label" id="detail-back-label">Retour</span>
+      </button>
       <div class="detail-header">
         <div class="detail-header-copy">
           <div class="detail-title" id="detail-title">Rendez-vous</div>
@@ -6287,13 +6333,32 @@
     function formatDetailDate(dateStr) {
       if (!dateStr) return '';
       try {
-        return new Date(dateStr).toLocaleString('en-US', {
+        return new Date(dateStr).toLocaleString('fr-FR', {
           month: 'short',
           day: 'numeric',
-          hour: 'numeric',
+          hour: '2-digit',
           minute: '2-digit'
         });
       } catch { return ''; }
+    }
+
+    // Artemis: traductions FR pour les chips meta (type de contenu et
+    // statut). Les valeurs viennent du backend Rust en anglais.
+    function localizeContentType(type) {
+      const map = {
+        meeting: 'rendez-vous',
+        memo: 'mémo',
+        dictation: 'dictée',
+      };
+      return map[type] || type;
+    }
+    function localizeStatus(status) {
+      const map = {
+        complete: 'finalisé',
+        'no-speech': 'sans parole',
+        'transcript-only': 'transcription seule',
+      };
+      return map[status] || status;
     }
 
     function escapeRegex(text) {
@@ -6349,6 +6414,11 @@
       detailOverlay.classList.remove('active');
       currentMeetingPath = null;
       currentMeetingDetail = null;
+      // Artemis: vider la pile de navigation à la fermeture pour
+      // qu'une réouverture future démarre vierge.
+      meetingNavStack = [];
+      const backBtn = document.getElementById('btn-detail-back');
+      if (backBtn) backBtn.hidden = true;
       persistRecallWorkspaceState({ currentMeetingPath: '' });
       if (detailFeedbackTimer) {
         clearTimeout(detailFeedbackTimer);
@@ -6389,10 +6459,10 @@
       const chips = [
         formatDetailDate(detail.date),
         detail.duration,
-        detail.content_type,
-        detail.status && detail.status !== 'complete' ? detail.status : null,
+        localizeContentType(detail.content_type),
+        detail.status && detail.status !== 'complete' ? localizeStatus(detail.status) : null,
         detail.calendar_event || null,
-        detail.attendees && detail.attendees.length ? `${detail.attendees.length} attendee${detail.attendees.length === 1 ? '' : 's'}` : null
+        detail.attendees && detail.attendees.length ? `${detail.attendees.length} participant${detail.attendees.length === 1 ? '' : 's'}` : null
       ].filter(Boolean);
 
       for (const chipText of chips) {
@@ -6614,7 +6684,9 @@
           const openBtn = document.createElement('button');
           openBtn.className = 'btn btn-secondary btn-sm';
           openBtn.textContent = 'Source';
-          openBtn.addEventListener('click', () => openMeetingDetail(item.path));
+          // push:true → empile le RDV courant dans la pile de nav avant
+          // de naviguer, le bouton ← apparaît automatiquement.
+          openBtn.addEventListener('click', () => openMeetingDetail(item.path, { push: true }));
           row.appendChild(openBtn);
 
           commitmentsList.appendChild(row);
@@ -6643,7 +6715,8 @@
           const openBtn = document.createElement('button');
           openBtn.className = 'btn btn-secondary btn-sm';
           openBtn.textContent = 'Ouvrir';
-          openBtn.addEventListener('click', () => openMeetingDetail(meeting.path));
+          // push:true → empile pour permettre le retour avec le bouton ←
+          openBtn.addEventListener('click', () => openMeetingDetail(meeting.path, { push: true }));
           row.appendChild(openBtn);
 
           meetingsList.appendChild(row);
@@ -6675,13 +6748,25 @@
           openBtn.textContent = 'Ouvrir';
           openBtn.addEventListener('click', async () => {
             try {
+              // Artemis: mémoriser le RDV qu'on quitte pour pouvoir y
+              // revenir avec le bouton ← du viewer markdown. Sinon le
+              // viewer s'ouvre derrière la popup et c'est silencieux.
+              artifactReturnContext = {
+                path: currentMeetingPath,
+                title: (currentMeetingDetail && currentMeetingDetail.title) || 'rendez-vous',
+              };
               const access = await invoke('cmd_get_text_file_access', { path: artifact.path });
               const content = await invoke('cmd_read_text_file', { path: artifact.path });
+              // Fermer la popup AVANT d'ouvrir le viewer pour que le
+              // user voie immédiatement le document.
+              closeDetailView();
               await showMdViewer(artifact.path, artifact.filename, content, {
                 editable: !!access.editable,
                 kind: access.kind || artifact.kind || 'text',
               });
+              updateMdViewerBackButton();
             } catch (e) {
+              artifactReturnContext = null;
               console.error('Open adjacent artifact:', e);
             }
           });
@@ -6738,21 +6823,54 @@
       persistRecallWorkspaceState({ currentMeetingPath: detail.path });
     }
 
-    async function openMeetingDetail(path) {
+    // Artemis: pile de navigation pour la popup détail. Chaque entrée
+    // est { path, title } pour pouvoir afficher le label du bouton ←.
+    // - openMeetingDetail(path)            → fresh nav, vide la pile
+    // - openMeetingDetail(path, {push:true}) → push current avant nav
+    // - navigateBackInDetail()             → pop et nav
+    let meetingNavStack = [];
+
+    // Artemis: contexte de retour quand on a ouvert un document depuis
+    // "Documents associés" d'un RDV. La popup est fermée pour révéler
+    // le viewer markdown ; au clic ← du viewer on rouvre cette popup.
+    let artifactReturnContext = null;
+
+    function updateBackButton() {
+      const btn = document.getElementById('btn-detail-back');
+      const label = document.getElementById('detail-back-label');
+      if (!btn || !label) return;
+      if (meetingNavStack.length === 0) {
+        btn.hidden = true;
+        return;
+      }
+      const prev = meetingNavStack[meetingNavStack.length - 1];
+      label.textContent = 'Retour à ' + (prev.title || 'précédent');
+      btn.hidden = false;
+    }
+
+    async function openMeetingDetail(path, options = {}) {
+      const push = !!options.push;
+      // Save the current meeting (path + title) onto the stack BEFORE
+      // we replace the popup content, so the ← button can label the
+      // previous meeting properly.
+      if (push && currentMeetingPath && currentMeetingDetail) {
+        meetingNavStack.push({
+          path: currentMeetingPath,
+          title: currentMeetingDetail.title || 'Précédent',
+        });
+      } else if (!push && !options.fromBack) {
+        // Fresh nav (sidebar / ⋯ button) → reset stack
+        meetingNavStack = [];
+      }
+
       try {
         const detail = await invoke('cmd_get_meeting_detail', { path });
         renderDetailSections(detail);
-        // Artemis: réinitialiser le scroll en haut quand on bascule
-        // d'un RDV à un autre via "Source" ou "Ouvrir". Sinon on reste
-        // scrollé en bas (où étaient les boutons) et on a l'impression
-        // que rien n'a changé alors que le contenu a bien été rechargé.
+        updateBackButton();
         const detailScrollEl = document.getElementById('detail-scroll');
         if (detailScrollEl) detailScrollEl.scrollTop = 0;
       } catch (e) {
         console.error('Detail:', e);
-        // Notice visible côté UI plutôt que fallback silencieux sur
-        // cmd_open_file (qui ouvrirait un éditeur externe sans
-        // signaler l'erreur).
         const noticeIcon = document.getElementById('output-notice-icon');
         const noticeTitle = document.getElementById('output-notice-title');
         const noticeDetail = document.getElementById('output-notice-detail');
@@ -6763,6 +6881,15 @@
         if (notice) notice.classList.add('active');
       }
     }
+
+    function navigateBackInDetail() {
+      if (meetingNavStack.length === 0) return;
+      const prev = meetingNavStack.pop();
+      // fromBack flag → don't clear stack, don't push
+      openMeetingDetail(prev.path, { fromBack: true });
+    }
+
+    document.getElementById('btn-detail-back').addEventListener('click', navigateBackInDetail);
 
     function renderMeetings(meetings) {
       meetingsScroll.replaceChildren();
@@ -9785,6 +9912,10 @@
       mdViewerReviewData = null;
       mdViewerReviewVisible = false;
       mdViewer.classList.remove('active');
+      // Artemis: clear le contexte de retour pour qu'un futur viewer
+      // ouvert depuis un autre chemin (pas "Documents associés")
+      // n'hérite pas d'un retour fantôme.
+      artifactReturnContext = null;
       meetingsScroll.style.display = '';
       mdSearchWrap.style.display = '';
       footer.style.display = '';
@@ -9917,7 +10048,31 @@
     }
 
     document.getElementById('btn-open-md').addEventListener('click', openMarkdownFile);
-    document.getElementById('md-viewer-back').addEventListener('click', () => { hideMdViewer(); });
+    // Artemis: si on est arrivé sur le viewer depuis "Documents associés"
+    // d'un RDV, le bouton ← rouvre la popup de ce RDV. Sinon il se
+    // contente de fermer le viewer (comportement upstream).
+    function updateMdViewerBackButton() {
+      const btn = document.getElementById('md-viewer-back');
+      if (!btn) return;
+      if (artifactReturnContext && artifactReturnContext.path) {
+        btn.title = 'Retour à ' + (artifactReturnContext.title || 'rendez-vous');
+      } else {
+        btn.title = 'Retour à la liste';
+      }
+    }
+    document.getElementById('md-viewer-back').addEventListener('click', async () => {
+      if (artifactReturnContext && artifactReturnContext.path) {
+        const ctx = artifactReturnContext;
+        artifactReturnContext = null;
+        await hideMdViewer();
+        // Rouvrir la popup détail du RDV qui a déclenché l'ouverture
+        // du document — fresh nav (pas de back stack puisqu'on revient
+        // d'un autre paradigme).
+        openMeetingDetail(ctx.path);
+      } else {
+        hideMdViewer();
+      }
+    });
     mdViewerPreviewBtn.addEventListener('click', () => setMdViewerMode('preview'));
     mdViewerSourceBtn.addEventListener('click', () => setMdViewerMode('source'));
     mdViewerPromoteBtn.addEventListener('click', promoteOpenArtifact);
