@@ -9126,11 +9126,14 @@ pub async fn cmd_chat_artifact(
     }
 
     // Delegate to minutes-core — blocking API call wrapped in a
-    // tokio task so we don't block the Tauri runtime.
+    // spawn_blocking task so we don't block the Tauri runtime.
+    // Uses tauri::async_runtime (not tokio directly) because the
+    // minutes-app crate doesn't depend on tokio — Tauri re-exports
+    // its own async runtime handle.
     let config_clone = config.clone();
     let content_clone = meeting_content.clone();
     let messages_clone = messages.clone();
-    tokio::task::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || {
         minutes_core::summarize::chat_about_meeting(
             &config_clone,
             &content_clone,
