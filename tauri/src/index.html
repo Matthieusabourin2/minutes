@@ -9344,19 +9344,19 @@
       mdViewerReview.classList.toggle('active', mdViewerReviewVisible && !!mdViewerReviewData?.available);
 
       if (openArtifactSaving) {
-        setMdViewerStatus('Saving...', 'saved');
+        setMdViewerStatus('Sauvegarde…', 'saved');
       } else if (openArtifactParseError) {
-        setMdViewerStatus('Invalid JSON', 'warning');
+        setMdViewerStatus('JSON invalide', 'warning');
       } else if (!openArtifactEditable && openArtifactPath) {
-        setMdViewerStatus('Read-only', 'readonly');
+        setMdViewerStatus('Lecture seule', 'readonly');
       } else if (openArtifactDirty) {
-        setMdViewerStatus('Unsaved', 'unsaved');
+        setMdViewerStatus('Non sauvegardé', 'unsaved');
       } else if (openArtifactExternalNotice) {
         setMdViewerStatus(openArtifactExternalNotice, 'external');
       } else if (sourceMode) {
-        setMdViewerStatus('Editing');
+        setMdViewerStatus('Édition');
       } else {
-        setMdViewerStatus('Viewing');
+        setMdViewerStatus('Lecture');
       }
     }
 
@@ -9424,7 +9424,7 @@
         openArtifactLastError = null;
         if (content !== openArtifactContent) {
           if (openArtifactDirty) {
-            setMdViewerStatus('Local edits pause refresh', 'unsaved');
+            setMdViewerStatus('Modifs locales — pause rafraîchissement', 'unsaved');
             return;
           }
           openArtifactContent = content;
@@ -9465,11 +9465,11 @@
         if (mdViewerMode === 'preview') {
           rerenderOpenArtifact(nextContent, { preserveScroll: true });
         }
-        setMdViewerStatus('Saved', 'saved');
+        setMdViewerStatus('Sauvegardé', 'saved');
         await refreshArtifactReview();
       } catch (e) {
         console.error('Save artifact:', e);
-        setMdViewerStatus('Save failed', 'warning');
+        setMdViewerStatus('Échec de la sauvegarde', 'warning');
       } finally {
         openArtifactSaving = false;
         refreshMdViewerChrome();
@@ -9620,13 +9620,13 @@
         const content = await invoke('cmd_read_text_file', { path: openArtifactPath });
         openArtifactContent = content;
         openArtifactDirty = false;
-        openArtifactExternalNotice = 'Reverted to snapshot';
+        openArtifactExternalNotice = 'Restauré au dernier instantané';
         mdViewerEditor.value = content;
         rerenderOpenArtifact(content, { preserveScroll: true });
         await refreshArtifactReview();
       } catch (e) {
         console.error('Restore snapshot:', e);
-        setMdViewerStatus('Revert failed', 'warning');
+        setMdViewerStatus('Échec de la restauration', 'warning');
       } finally {
         openArtifactSaving = false;
         refreshMdViewerChrome();
@@ -9645,10 +9645,10 @@
         });
         if (!shown) return;
         setMdViewerMode('source');
-        setMdViewerStatus('Editable copy ready', 'saved');
+        setMdViewerStatus('Copie éditable prête', 'saved');
       } catch (e) {
         console.error('Promote artifact:', e);
-        setMdViewerStatus('Promote failed', 'warning');
+        setMdViewerStatus('Échec de la copie éditable', 'warning');
       }
     }
 
@@ -9656,7 +9656,7 @@
       try {
         const { open } = window.__TAURI__.dialog;
         const selected = await open({
-          title: 'Open artifact file',
+          title: 'Ouvrir un document',
           filters: [{ name: 'Artifacts', extensions: ['md', 'txt', 'markdown', 'json'] }],
         });
         if (!selected) return;
