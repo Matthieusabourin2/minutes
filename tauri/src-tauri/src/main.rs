@@ -711,7 +711,13 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        // Artemis: plugin updater retiré. Le script CI supprime la
+        // conf `plugins.updater` du tauri.conf.json, mais Tauri 2 panique
+        // au démarrage avec "invalid type: null, expected struct Config"
+        // quand le plugin est enregistré sans config. On le neutralise
+        // au compile-time. cmd_install_update n'est plus appelable —
+        // bouton de debug Updater est déjà hidden côté UI.
+        // .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(commands::AppState {
             recording: recording.clone(),
             starting: starting.clone(),
