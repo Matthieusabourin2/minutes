@@ -178,6 +178,25 @@ pub fn summarize_with_screens(
 
 /// Format a Summary into markdown sections.
 pub fn format_summary(summary: &Summary) -> String {
+    // Artemis/Catalia: if the raw LLM output carries its own top-level
+    // markdown sections (e.g. "## Résumé", "## Profil client",
+    // "## Analyse ProcessCom"), emit it verbatim and skip the upstream
+    // bullet-extraction pipeline. This preserves the domain-specific
+    // structure the `custom_prompt` was designed to produce. The
+    // structured YAML frontmatter (decisions, action_items, etc.) is
+    // still populated by parse_summary_response from the machine-
+    // parseable KEY POINTS / DECISIONS / ... trailer, so cross-meeting
+    // search and queryable metadata keep working unchanged.
+    if summary
+        .text
+        .lines()
+        .any(|l| l.trim_start().starts_with("## "))
+    {
+        let mut out = summary.text.trim_end().to_string();
+        out.push('\n');
+        return out;
+    }
+
     let mut output = String::new();
 
     if !summary.key_points.is_empty() {
@@ -529,12 +548,15 @@ fn parse_summary_response(response: &str) -> Summary {
         .filter(|p| !p.is_empty())
         .collect();
 
+    // Artemis/Catalia: always preserve the full raw LLM response in `text`
+    // (previously only kept when key_points was empty). A domain-specific
+    // custom_prompt may produce rich markdown sections BEFORE the machine-
+    // parseable KEY POINTS block — dropping text in that case loses all
+    // of the domain content (ProcessCom analysis, client profile, etc.).
+    // `format_summary` decides whether to render text verbatim or fall
+    // back to the extracted bullets.
     Summary {
-        text: if key_points.is_empty() {
-            response.to_string()
-        } else {
-            String::new()
-        },
+        text: response.to_string(),
         decisions,
         action_items,
         open_questions,

@@ -231,9 +231,23 @@ fn render_markdown(
     let mut content = format!("---\n{}---\n\n", yaml);
 
     if let Some(summary_text) = summary {
-        content.push_str("## Summary\n\n");
-        content.push_str(summary_text);
-        content.push_str("\n\n");
+        // Artemis/Catalia: if format_summary emitted domain-specific top-level
+        // markdown headers (## Résumé, ## Profil client, …) keep them at H2
+        // and skip the default "## Summary" wrapper — otherwise we'd end up
+        // with a "## Summary" shell containing nested "## Résumé" which
+        // breaks the visual hierarchy. Upstream prompts produce plain bullet
+        // text and fall through the old behavior unchanged.
+        let trimmed = summary_text.trim_start();
+        if trimmed.starts_with("## ") || trimmed.starts_with("# ") {
+            content.push_str(summary_text);
+            if !summary_text.ends_with("\n\n") {
+                content.push_str("\n\n");
+            }
+        } else {
+            content.push_str("## Summary\n\n");
+            content.push_str(summary_text);
+            content.push_str("\n\n");
+        }
     }
 
     if frontmatter.status == Some(OutputStatus::NoSpeech) {
