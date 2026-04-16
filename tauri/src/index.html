@@ -3641,13 +3641,13 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="header-chip active" id="btn-open-md" title="Open file (⌘O)">Open</button>
-        <button class="btn btn-icon" id="btn-settings" title="Settings (⌘,)">⚙</button>
-        <button class="header-chip dictation-shortcut" id="dictation-shortcut-chip">Dictate</button>
-        <button class="header-chip readiness" id="btn-readiness">Readiness</button>
-        <button class="header-chip" id="btn-jobs">Jobs <span id="jobs-count">0</span></button>
-        <button class="header-chip" id="btn-recovery">Recovery <span id="recovery-count">0</span></button>
-        <span class="status-pill" id="status-pill">idle</span>
+        <button class="header-chip active" id="btn-open-md" title="Ouvrir un fichier (⌘O)">Ouvrir</button>
+        <button class="btn btn-icon" id="btn-settings" title="Réglages (⌘,)">⚙</button>
+        <button class="header-chip dictation-shortcut" id="dictation-shortcut-chip">Dicter</button>
+        <button class="header-chip readiness" id="btn-readiness">État système</button>
+        <button class="header-chip" id="btn-jobs">Tâches <span id="jobs-count">0</span></button>
+        <button class="header-chip" id="btn-recovery">Récupération <span id="recovery-count">0</span></button>
+        <span class="status-pill" id="status-pill">inactif</span>
       </div>
     </div>
 
@@ -3656,18 +3656,18 @@
       <div class="top-row">
         <div class="recording-indicator">
           <span class="recording-dot"></span>
-          <span id="recording-label">Recording</span>
+          <span id="recording-label">Enregistrement</span>
         </div>
         <span class="recording-time" id="recording-time">0:00</span>
       </div>
       <div class="recording-source-health" id="recording-source-health">
-        <span class="call-health-chip" id="recording-health-mic">Mic waiting</span>
-        <span class="call-health-chip" id="recording-health-audio">Call audio waiting</span>
+        <span class="call-health-chip" id="recording-health-mic">Micro en attente</span>
+        <span class="call-health-chip" id="recording-health-audio">Audio d'appel en attente</span>
       </div>
       <div class="audio-viz" id="audio-viz"></div>
       <div class="recording-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-note-inline" title="Add a note">Add Note</button>
-        <button class="btn btn-danger btn-sm" id="btn-stop">Stop Recording</button>
+        <button class="btn btn-secondary btn-sm" id="btn-note-inline" title="Ajouter une note">Ajouter une note</button>
+        <button class="btn btn-danger btn-sm" id="btn-stop">Arrêter l'enregistrement</button>
       </div>
     </div>
 
@@ -3676,16 +3676,16 @@
       <div class="top-row">
         <div class="live-indicator">
           <span class="live-dot" aria-hidden="true"></span>
-          <span>Live Transcript</span>
+          <span>Transcription en direct</span>
         </div>
         <span class="live-time" id="live-time">0:00</span>
       </div>
       <div class="live-level">
         <div class="live-level-fill" id="live-level-fill"></div>
       </div>
-      <div class="live-utterances" id="live-utterances">0 utterances</div>
+      <div class="live-utterances" id="live-utterances">0 énoncé</div>
       <div class="live-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-stop-live">Stop Live</button>
+        <button class="btn btn-secondary btn-sm" id="btn-stop-live">Arrêter le direct</button>
       </div>
     </div>
 
@@ -3694,8 +3694,8 @@
       <div class="processing-row">
         <div class="processing-spinner" aria-hidden="true"></div>
         <div class="processing-copy">
-          <div class="processing-title" id="processing-title">Processing recording</div>
-          <div class="processing-stage" id="processing-stage">Preparing transcript...</div>
+          <div class="processing-title" id="processing-title">Traitement de l'enregistrement</div>
+          <div class="processing-stage" id="processing-stage">Préparation de la transcription…</div>
           <div class="processing-elapsed" id="processing-elapsed"></div>
           <div class="processing-summary" id="processing-summary"></div>
         </div>
@@ -3708,14 +3708,14 @@
       <div class="output-notice-row">
         <div class="output-notice-icon" id="output-notice-icon">✓</div>
         <div class="output-notice-copy">
-          <div class="output-notice-title" id="output-notice-title">Saved meeting</div>
+          <div class="output-notice-title" id="output-notice-title">Rendez-vous sauvegardé</div>
           <div class="output-notice-detail" id="output-notice-detail"></div>
           <div class="output-notice-path" id="output-notice-path"></div>
           <div class="output-notice-actions">
-            <button class="btn btn-secondary btn-sm" id="btn-open-output">Open</button>
-            <button class="btn btn-secondary btn-sm" id="btn-draft-output">Create Draft</button>
-            <button class="btn btn-secondary btn-sm" id="btn-open-output-folder">Show in Folder</button>
-            <button class="btn btn-secondary btn-sm" id="btn-dismiss-output">Dismiss</button>
+            <button class="btn btn-secondary btn-sm" id="btn-open-output">Ouvrir</button>
+            <button class="btn btn-secondary btn-sm" id="btn-draft-output">Créer un brouillon</button>
+            <button class="btn btn-secondary btn-sm" id="btn-open-output-folder">Afficher dans le dossier</button>
+            <button class="btn btn-secondary btn-sm" id="btn-dismiss-output">Fermer</button>
           </div>
         </div>
       </div>
@@ -3724,14 +3724,14 @@
     <!-- Quick note (shown when "Add Note" clicked during recording) -->
     <div class="quick-note" id="quick-note">
       <div class="quick-note-row">
-        <input type="text" id="note-inline-input" placeholder="Quick note..." />
-        <button class="btn btn-secondary btn-sm" id="btn-note-save">Save</button>
+        <input type="text" id="note-inline-input" placeholder="Note rapide…" />
+        <button class="btn btn-secondary btn-sm" id="btn-note-save">Sauver</button>
       </div>
     </div>
 
     <!-- Search -->
     <div class="search-wrap search-icon">
-      <input class="search-box" type="text" placeholder="Search meetings, memos, and dictations..." id="search-input" />
+      <input class="search-box" type="text" placeholder="Rechercher dans les rendez-vous, mémos et dictées…" id="search-input" />
     </div>
 
     <!-- Upcoming meeting suggestion -->
@@ -3741,25 +3741,25 @@
         <div class="upcoming-title" id="upcoming-title"></div>
         <div class="upcoming-time" id="upcoming-time"></div>
       </div>
-      <button class="btn btn-primary btn-sm" id="btn-record-upcoming">Record</button>
+      <button class="btn btn-primary btn-sm" id="btn-record-upcoming">Enregistrer</button>
     </div>
 
     <!-- Call detected banner -->
     <div class="call-detected" id="call-detected-banner">
       <div class="call-detected-icon">📞</div>
       <div class="call-detected-info">
-        <div class="call-detected-title" id="call-detected-title">Call detected</div>
-        <div class="call-detected-subtitle" id="call-detected-subtitle">Ready to record this call</div>
-        <div class="call-detected-detail" id="call-detected-detail">Minutes will stay ready while this call is active.
+        <div class="call-detected-title" id="call-detected-title">Appel détecté</div>
+        <div class="call-detected-subtitle" id="call-detected-subtitle">Prêt à enregistrer cet appel</div>
+        <div class="call-detected-detail" id="call-detected-detail">Minutes reste prêt tant que cet appel est actif.
         </div>
         <div class="call-detected-health">
-          <span class="call-health-chip" id="call-health-mic">Mic waiting</span>
-          <span class="call-health-chip" id="call-health-audio">Call audio waiting</span>
+          <span class="call-health-chip" id="call-health-mic">Micro en attente</span>
+          <span class="call-health-chip" id="call-health-audio">Audio d'appel en attente</span>
         </div>
       </div>
       <div class="call-detected-actions">
-        <button class="btn btn-primary btn-sm" id="btn-record-call">Record</button>
-        <button class="btn btn-secondary btn-sm" id="btn-dismiss-call">Dismiss</button>
+        <button class="btn btn-primary btn-sm" id="btn-record-call">Enregistrer</button>
+        <button class="btn btn-secondary btn-sm" id="btn-dismiss-call">Fermer</button>
       </div>
     </div>
 
@@ -3769,16 +3769,16 @@
         <div class="update-banner-row">
           <div class="update-banner-phase">
             <span class="update-banner-spinner" id="update-banner-spinner" aria-hidden="true"></span>
-            <div class="update-banner-title" id="update-banner-title">Update available</div>
+            <div class="update-banner-title" id="update-banner-title">Mise à jour disponible</div>
           </div>
           <div class="update-banner-actions">
-            <button class="btn btn-primary btn-sm" id="btn-start-update">Update now</button>
-            <button class="btn btn-primary btn-sm" id="btn-retry-update" hidden>Retry</button>
-            <button class="btn btn-secondary btn-sm" id="btn-cancel-update" hidden>Cancel</button>
-            <button class="btn btn-secondary btn-sm" id="btn-dismiss-update">Later</button>
+            <button class="btn btn-primary btn-sm" id="btn-start-update">Mettre à jour</button>
+            <button class="btn btn-primary btn-sm" id="btn-retry-update" hidden>Réessayer</button>
+            <button class="btn btn-secondary btn-sm" id="btn-cancel-update" hidden>Annuler</button>
+            <button class="btn btn-secondary btn-sm" id="btn-dismiss-update">Plus tard</button>
           </div>
         </div>
-        <div class="update-banner-sub" id="update-banner-sub">A new version is ready to install</div>
+        <div class="update-banner-sub" id="update-banner-sub">Une nouvelle version est prête à installer</div>
         <div class="update-banner-meta" id="update-banner-meta"></div>
         <div class="update-banner-progress" id="update-banner-progress">
           <div class="update-banner-progress-fill" id="update-banner-progress-fill"></div>
@@ -3853,8 +3853,8 @@
     <!-- Meeting list -->
     <div class="meetings-scroll" id="meetings-scroll">
       <div class="empty-state">
-        <div class="title">No meetings yet</div>
-        <div class="sub">Record your first conversation to get started.</div>
+        <div class="title">Aucun rendez-vous pour le moment</div>
+        <div class="sub">Enregistre ta première conversation pour démarrer.</div>
       </div>
     </div>
 
@@ -3862,22 +3862,22 @@
     <div class="footer" id="footer">
       <div class="footer-actions">
         <div class="footer-action-primary">
-          <button class="btn btn-primary" id="btn-record">Start Recording</button>
+          <button class="btn btn-primary" id="btn-record">Démarrer l'enregistrement</button>
         </div>
         <div class="footer-device-picker">
           <div class="footer-device-label">Microphone</div>
-          <select id="device-picker" class="device-picker" title="Select microphone">
-            <option value="">System Default</option>
+          <select id="device-picker" class="device-picker" title="Sélectionner le microphone">
+            <option value="">Micro par défaut</option>
           </select>
         </div>
         <div class="footer-action-secondary">
           <button class="btn btn-secondary" id="btn-live"
-            title="Start live transcription — ask your agent in Recall for coaching"
-            aria-label="Start live transcription">Live</button>
-          <button class="btn btn-secondary" id="btn-quick-thought">Quick Thought</button>
-          <button class="btn btn-secondary" id="btn-update-debug-launch" hidden>Update Debug</button>
-          <button class="btn btn-secondary" id="btn-assistant" aria-expanded="false">Recall <span class="recall-nudge"
-              id="recall-nudge" aria-label="Recall has new content"></span></button>
+            title="Démarrer la transcription en direct — demande un coaching à ton assistant"
+            aria-label="Démarrer la transcription en direct">Direct</button>
+          <button class="btn btn-secondary" id="btn-quick-thought">Note rapide</button>
+          <button class="btn btn-secondary" id="btn-update-debug-launch" hidden>Debug MàJ</button>
+          <button class="btn btn-secondary" id="btn-assistant" aria-expanded="false">Assistant <span class="recall-nudge"
+              id="recall-nudge" aria-label="Nouveau contenu dans l'assistant"></span></button>
         </div>
       </div>
     </div>
@@ -3923,17 +3923,17 @@
   <!-- In-app meeting detail view -->
   <div class="detail-overlay" id="detail-overlay">
     <div class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detail-title">
-      <button class="detail-close-x" id="btn-detail-close" aria-label="Close">&times;</button>
+      <button class="detail-close-x" id="btn-detail-close" aria-label="Fermer">&times;</button>
       <div class="detail-header">
         <div class="detail-header-copy">
-          <div class="detail-title" id="detail-title">Meeting</div>
+          <div class="detail-title" id="detail-title">Rendez-vous</div>
           <div class="detail-meta" id="detail-meta"></div>
         </div>
         <div class="detail-actions">
-          <button class="btn btn-secondary btn-sm" id="btn-create-artifact">Create Draft</button>
-          <button class="btn btn-primary btn-sm" id="btn-discuss-ai">Discuss with Agent</button>
-          <button class="btn btn-secondary btn-sm" id="btn-open-external">Open in Editor</button>
-          <button class="btn btn-danger btn-sm" id="btn-delete-meeting">Delete</button>
+          <button class="btn btn-secondary btn-sm" id="btn-create-artifact">Créer un brouillon</button>
+          <button class="btn btn-primary btn-sm" id="btn-discuss-ai">Échanger avec l'assistant</button>
+          <button class="btn btn-secondary btn-sm" id="btn-open-external">Ouvrir dans l'éditeur</button>
+          <button class="btn btn-danger btn-sm" id="btn-delete-meeting">Supprimer</button>
         </div>
       </div>
       <div class="detail-feedback" id="detail-feedback" hidden></div>
@@ -4222,7 +4222,7 @@
             </select>
             <div class="settings-section-inline settings-section-inline-tight">
               <div class="about-controls-meta settings-model-status"></div>
-              <button class="btn btn-secondary btn-sm is-hidden" id="btn-download-model">Download</button>
+              <button class="btn btn-secondary btn-sm is-hidden" id="btn-download-model">Télécharger</button>
             </div>
           </div>
         </div>
@@ -4905,7 +4905,7 @@
       const watchStatus = root.querySelector('#step-watch-artifact-status');
 
       if (!activation.hasModel && activation.nextAction === 'setup-parakeet') {
-        if (modelStatus) modelStatus.textContent = 'Needs setup';
+        if (modelStatus) modelStatus.textContent = 'Installation requise';
       }
 
       if (activation.hasModel || milestones.modelReadyAt) {
@@ -6782,35 +6782,35 @@
       const parakeetIssues = (parakeet?.issues || []).map(issue => `<li>${escapeHtml(issue)}</li>`).join('');
       const modelStepBody = setupEngine === 'parakeet'
         ? `
-                <p>Minutes is set to use Parakeet, which needs the local <code>parakeet</code> binary plus converted model assets.</p>
+                <p>Minutes est configuré pour utiliser Parakeet, qui nécessite le binaire local <code>parakeet</code> et les modèles convertis.</p>
                 ${parakeetIssues ? `<ul class="onboarding-list">${parakeetIssues}</ul>` : ''}
                 <div class="model-options">
-                  <button class="btn btn-primary btn-sm" id="btn-open-parakeet-guide-onboarding">Open Parakeet setup guide</button>
-                  <button class="btn btn-secondary btn-sm" id="btn-switch-to-whisper-onboarding">Use Whisper instead</button>
+                  <button class="btn btn-primary btn-sm" id="btn-open-parakeet-guide-onboarding">Ouvrir le guide Parakeet</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-switch-to-whisper-onboarding">Utiliser Whisper à la place</button>
                 </div>
                 <div class="about-controls-meta">${escapeHtml(parakeet?.setupCommand || 'minutes setup --parakeet')}<\/div>`
         : `
-                <p>Choose a model size:</p>
+                <p>Choisis une taille de modèle :</p>
                 <div class="model-options">
-                  <button class="btn btn-secondary btn-sm model-btn" data-model="tiny">Tiny (75 MB, fast)</button>
-                  <button class="btn btn-primary btn-sm model-btn" data-model="base">Base (141 MB, recommended)</button>
-                  <button class="btn btn-secondary btn-sm model-btn" data-model="small">Small (466 MB, best accuracy)</button>
+                  <button class="btn btn-secondary btn-sm model-btn" data-model="tiny">Tiny (75 Mo, rapide)</button>
+                  <button class="btn btn-primary btn-sm model-btn" data-model="base">Base (141 Mo, recommandé)</button>
+                  <button class="btn btn-secondary btn-sm model-btn" data-model="small">Small (466 Mo, meilleure précision)</button>
                 </div>
                 <div class="download-progress ui-hidden">
                   <div class="progress-bar"><div class="progress-fill"></div></div>
-                  <span class="progress-text">Downloading...</span>
+                  <span class="progress-text">Téléchargement…</span>
                 </div>`;
       const empty = document.createElement('div');
       empty.className = 'empty-state';
       empty.innerHTML = `
         <div class="onboarding-content">
-          <h2>Welcome to Minutes</h2>
-          <p class="onboarding-sub">Download the model once, then create one short recording. The moment it saves, this becomes your real meeting list.</p>
+          <h2>Bienvenue sur Minutes</h2>
+          <p class="onboarding-sub">Télécharge le modèle une fois, puis fais un court enregistrement de test. Dès qu'il est sauvegardé, cette vue devient ta vraie liste de rendez-vous.</p>
           <div class="onboarding-steps">
             <div class="onboarding-step" id="step-model">
               <div class="step-header">
                 <span class="step-num">1</span>
-                <span class="step-title">${setupEngine === 'parakeet' ? 'Set up Parakeet locally' : 'Download speech model'}</span>
+                <span class="step-title">${setupEngine === 'parakeet' ? 'Installer Parakeet en local' : 'Télécharger le modèle de reconnaissance vocale'}</span>
                 <span class="step-status" id="step-model-status"></span>
               </div>
               <div class="step-body" id="step-model-body">
@@ -6820,22 +6820,22 @@
             <div class="onboarding-step disabled" id="step-first-artifact">
               <div class="step-header">
                 <span class="step-num">2</span>
-                <span class="step-title">Create your first artifact</span>
+                <span class="step-title">Crée ton premier enregistrement</span>
                 <span class="step-status" id="step-first-artifact-status"></span>
               </div>
               <div class="step-body">
-                <p>Make a quick 10-second test recording. Say one sentence, stop, and let Minutes save its first markdown artifact.</p>
-                <button class="btn btn-primary" id="btn-start-first-recording">Record a 10-second test</button>
+                <p>Fais un test rapide de 10 secondes. Dis une phrase, arrête, et laisse Minutes produire son premier compte-rendu.</p>
+                <button class="btn btn-primary" id="btn-start-first-recording">Enregistrer un test de 10 secondes</button>
               </div>
             </div>
             <div class="onboarding-step disabled" id="step-watch-artifact">
               <div class="step-header">
                 <span class="step-num">3</span>
-                <span class="step-title">Watch it appear here</span>
+                <span class="step-title">Vois-le apparaître ici</span>
                 <span class="step-status" id="step-watch-artifact-status"></span>
               </div>
               <div class="step-body">
-                <p>As soon as the test recording finishes processing, this setup card disappears and your first saved artifact takes its place.</p>
+                <p>Dès que le test est traité, cette carte disparaît et ton premier compte-rendu prend sa place.</p>
               </div>
             </div>
           </div>
@@ -6860,10 +6860,10 @@
           document.getElementById('upcoming-title').textContent = next.title;
           const mins = next.minutes_until;
           document.getElementById('upcoming-time').textContent =
-            mins <= 0 ? 'Starting now' :
-              mins === 1 ? 'In 1 minute' :
-                mins < 60 ? `In ${mins} minutes` :
-                  `In ${Math.floor(mins / 60)}h ${mins % 60}m`;
+            mins <= 0 ? 'Démarre maintenant' :
+              mins === 1 ? 'Dans 1 minute' :
+                mins < 60 ? `Dans ${mins} minutes` :
+                  `Dans ${Math.floor(mins / 60)}h ${mins % 60}m`;
           upcoming.classList.add('active');
 
           document.getElementById('btn-record-upcoming').onclick = async () => {
@@ -8473,7 +8473,7 @@
         dismissed: false,
       };
       callTitle.textContent = `${app_name} call detected`;
-      callSubtitle.textContent = 'Ready to record this call';
+      callSubtitle.textContent = 'Prêt à enregistrer cet appel';
       callDetail.textContent = 'Minutes will stay ready while this call is active until you start recording or dismiss this session.';
       setCallHealthChip(callHealthMic, 'Mic waiting', false);
       setCallHealthChip(callHealthAudio, 'Call audio waiting', false);
