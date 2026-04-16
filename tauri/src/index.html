@@ -5028,7 +5028,7 @@
     }
 
     function currentModeLabel(mode) {
-      return mode === 'quick-thought' ? 'Quick Thought' : 'Recording';
+      return mode === 'quick-thought' ? 'Note rapide' : 'Enregistrement';
     }
 
     function currentProcessingTitle(mode) {
@@ -5376,9 +5376,9 @@
           stopRequested = false;
           document.getElementById('btn-stop').disabled = false;
           statusPill.className = 'status-pill processing';
-          statusPill.textContent = 'processing';
+          statusPill.textContent = 'traitement';
           processingTitle.textContent = status.processingTitle
-            ? `Processing ${status.processingTitle}`
+            ? `Traitement ${status.processingTitle}`
             : currentProcessingTitle(mode);
           recordingBar.classList.remove('active');
           processingBar.classList.add('active');
@@ -5417,7 +5417,7 @@
             isLiveTranscript = !!liveStatus.active;
             if (isLiveTranscript) {
               statusPill.className = 'status-pill live';
-              statusPill.textContent = 'live';
+              statusPill.textContent = 'en direct';
               recordingBar.classList.remove('active');
               processingBar.classList.remove('active');
               liveBar.classList.add('active');
@@ -5440,7 +5440,7 @@
             stopRequested = false;
             document.getElementById('btn-stop').disabled = false;
             statusPill.className = 'status-pill';
-            statusPill.textContent = 'idle';
+            statusPill.textContent = 'inactif';
             recordingLabel.textContent = 'Enregistrement';
             recordingSourceHealth.classList.remove('active');
             processingTitle.textContent = 'Traitement de l\'enregistrement';
@@ -5871,7 +5871,7 @@
         stopRequested = true;
         document.getElementById('btn-stop').disabled = true;
         statusPill.className = 'status-pill processing';
-        statusPill.textContent = 'stopping';
+        statusPill.textContent = 'arrêt';
         recordingLabel.textContent = 'Finalisation de l\'enregistrement…';
         processingBar.classList.add('active');
         processingTitle.textContent = 'Arrêt de l\'enregistrement';
@@ -7094,13 +7094,13 @@
         } else if (v.enabled) {
           detail.textContent = v.detail;
           detail.style.color = 'var(--yellow, var(--orange))';
-          setupBtn.textContent = 'Fix';
+          setupBtn.textContent = 'Réparer';
           unlinkRow.classList.remove('is-hidden');
           activePath.textContent = v.path;
         } else {
           detail.textContent = 'Not configured. Meetings stay in ~/meetings/ — connect a vault to see them in Obsidian.';
           detail.style.color = '';
-          setupBtn.textContent = 'Set Up Vault';
+          setupBtn.textContent = 'Configurer le vault';
           setupBtn.classList.add('btn-primary');
           setupBtn.classList.remove('btn-secondary');
           unlinkRow.classList.add('is-hidden')
@@ -7116,7 +7116,7 @@
 
         const btn = document.getElementById('btn-vault-setup');
         btn.disabled = true;
-        btn.textContent = 'Configuring...';
+        btn.textContent = 'Configuration…';
 
         const result = await invoke('cmd_vault_setup', { path: selected });
         document.getElementById('vault-status-detail').textContent = result.detail;
