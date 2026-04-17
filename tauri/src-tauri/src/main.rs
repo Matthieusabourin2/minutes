@@ -1346,6 +1346,7 @@ fn main() {
             commands::cmd_pause_recording,
             commands::cmd_resume_recording,
             commands::cmd_is_paused,
+            commands::cmd_model_file_size,
             commands::cmd_open_file,
             commands::cmd_read_text_file,
             commands::cmd_get_text_file_access,

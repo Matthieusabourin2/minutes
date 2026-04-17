@@ -5340,6 +5340,24 @@ pub fn cmd_needs_setup(state: tauri::State<AppState>) -> serde_json::Value {
     })
 }
 
+/// Artemis V2 : taille courante (en bytes) du fichier modèle en train d'être
+/// téléchargé. Utilisé par le JS pour polling de progression (1/s) pendant
+/// que `cmd_download_model` tourne en arrière-plan (curl ne nous donne pas
+/// de callback de progression via invoke). Retourne 0 si le fichier n'existe
+/// pas encore (début du download, avant que curl ait créé le fichier).
+#[tauri::command]
+pub fn cmd_model_file_size(model: String) -> u64 {
+    if validate_download_model_name(&model).is_err() {
+        return 0;
+    }
+    let config = Config::load();
+    let path = config
+        .transcription
+        .model_path
+        .join(format!("ggml-{}.bin", model));
+    std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0)
+}
+
 #[tauri::command]
 pub async fn cmd_download_model(
     state: tauri::State<'_, AppState>,

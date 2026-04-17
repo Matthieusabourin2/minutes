@@ -941,6 +941,50 @@
       gap: 8px;
     }
 
+    /* Artemis V2 : dialog modal de progression avec spinner. */
+    .artemis-progress-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 28px 24px;
+      width: min(460px, calc(100vw - 40px));
+      box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+      color: var(--text);
+      text-align: center;
+      animation: artemis-confirm-slide 0.16s ease-out;
+    }
+    .artemis-progress-spinner {
+      width: 42px;
+      height: 42px;
+      margin: 0 auto 16px;
+      border: 3px solid var(--border-mid, rgba(0,0,0,0.1));
+      border-top-color: var(--accent, #7B9237);
+      border-radius: 50%;
+      animation: artemis-spin 0.9s linear infinite;
+    }
+    @keyframes artemis-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .artemis-progress-title {
+      font-family: var(--font-display, inherit);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .artemis-progress-message {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .artemis-progress-status {
+      font-size: 12.5px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono, monospace);
+      min-height: 18px;
+    }
+
     .recording-source-health {
       display: none;
       gap: 8px;
@@ -6335,29 +6379,29 @@
         });
         if (!ok) return false;
 
-        // Afficher un feedback simple pendant le download (dans la status pill)
-        const pill = document.getElementById('status-pill');
-        const previousPillClass = pill?.className || 'status-pill';
-        const previousPillText = pill?.textContent || 'inactif';
-        if (pill) {
-          pill.className = 'status-pill processing';
-          pill.textContent = `Téléchargement ${configured}…`;
-        }
-
+        // Dialog modal de progression avec spinner + polling taille fichier
+        const progress = showProgressDialog({
+          title: `Téléchargement ${configured}`,
+          message: `Fichier ggml-${configured}.bin (${labels[configured] || ''}). Ça peut prendre 1 à 10 minutes selon ta connexion. Ne ferme pas l'app.`,
+        });
+        const pollInterval = startDownloadProgressPolling(configured, progress);
         try {
           await invoke('cmd_download_model', { model: configured });
+          clearInterval(pollInterval);
+          progress.setStatus('Téléchargement terminé ✓');
+          await new Promise(r => setTimeout(r, 600));
+          progress.close();
         } catch (err) {
-          if (pill) {
-            pill.className = previousPillClass;
-            pill.textContent = previousPillText;
-          }
-          alert('Échec du téléchargement : ' + err);
+          clearInterval(pollInterval);
+          progress.close();
+          await confirmViaDialog({
+            title: 'Échec du téléchargement',
+            message: String(err),
+            confirmLabel: 'OK',
+            cancelLabel: '',
+            confirmKind: 'primary',
+          });
           return false;
-        }
-
-        if (pill) {
-          pill.className = previousPillClass;
-          pill.textContent = previousPillText;
         }
         return true;
       } catch (e) {
@@ -6550,6 +6594,78 @@
         console.error('Delete:', e);
       }
     });
+
+    // ── Artemis V2 : polling de progression du download modèle.
+    //    Expected sizes approximatives (bytes), pour calculer un % et
+    //    un débit Mo/s pendant que curl tourne côté backend. ──
+    const MODEL_EXPECTED_SIZES = {
+      tiny: 77_700_000,
+      base: 148_000_000,
+      small: 487_000_000,
+      medium: 1_533_000_000,
+      'large-v3-turbo': 1_624_000_000,
+      'large-v3': 3_094_000_000,
+    };
+    function startDownloadProgressPolling(model, progress) {
+      const expected = MODEL_EXPECTED_SIZES[model] || 0;
+      let lastSize = 0;
+      const startTime = Date.now();
+      return setInterval(async () => {
+        try {
+          const size = await invoke('cmd_model_file_size', { model });
+          if (size === lastSize) return;
+          lastSize = size;
+          const elapsed = Math.max(0.1, (Date.now() - startTime) / 1000);
+          const mb = (size / (1024 * 1024)).toFixed(1);
+          const speedMbps = (size / elapsed / 1024 / 1024).toFixed(1);
+          if (expected > 0) {
+            const pct = Math.min(100, Math.round((size / expected) * 100));
+            const etaSecs = speedMbps > 0
+              ? Math.max(0, (expected - size) / (size / elapsed))
+              : 0;
+            const etaStr = etaSecs > 0 && etaSecs < 3600
+              ? ` · reste ~${Math.ceil(etaSecs)}s`
+              : '';
+            progress.setStatus(`${mb} Mo (${pct}%) · ${speedMbps} Mo/s${etaStr}`);
+          } else {
+            progress.setStatus(`${mb} Mo reçus · ${speedMbps} Mo/s`);
+          }
+        } catch (_) {
+          // File doesn't exist yet (début du download). Silencieux.
+        }
+      }, 1000);
+    }
+
+    // ── Artemis V2 : dialog modal de progression pour les opérations
+    //    longues (download modèle 1,6 Go, etc.). Bloque toute autre
+    //    interaction et donne un feedback visuel clair. Retourne un
+    //    objet avec {close(), setStatus(text)} pour updater depuis
+    //    l'appelant si on a des étapes intermédiaires. ──
+    function showProgressDialog({ title, message }) {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'artemis-confirm-backdrop';
+      backdrop.innerHTML = `
+        <div class="artemis-progress-card" role="dialog" aria-modal="true" aria-live="polite">
+          <div class="artemis-progress-spinner"></div>
+          <div class="artemis-progress-title"></div>
+          <div class="artemis-progress-message"></div>
+          <div class="artemis-progress-status"></div>
+        </div>
+      `;
+      backdrop.querySelector('.artemis-progress-title').textContent = title;
+      backdrop.querySelector('.artemis-progress-message').textContent = message || '';
+      const statusEl = backdrop.querySelector('.artemis-progress-status');
+      document.body.appendChild(backdrop);
+
+      return {
+        setStatus(text) {
+          statusEl.textContent = text || '';
+        },
+        close() {
+          backdrop.remove();
+        },
+      };
+    }
 
     // ── Artemis V2 : dialog de confirmation stylisé (remplace
     //    window.confirm() qui affiche une alert native moche). ──
@@ -8253,20 +8369,33 @@
           select.value = previousValue; // revert
           return;
         }
-        downloadBtn.disabled = true;
-        downloadBtn.textContent = 'Téléchargement…';
-        statusEl.textContent = `Téléchargement de ${newModel}… peut prendre quelques minutes.`;
+        // Artemis V2 : dialog modal visible pendant tout le download.
+        // Bloque les interactions pour pas que l'user pense que ça fait
+        // rien. Polling taille fichier ~1/s pour feedback progressif.
+        const progress = showProgressDialog({
+          title: `Téléchargement ${newModel}`,
+          message: `Fichier ggml-${newModel}.bin (${labels[newModel] || ''}). Ça peut prendre 1 à 10 minutes selon ta connexion. Ne ferme pas l'app.`,
+        });
+        const pollInterval = startDownloadProgressPolling(newModel, progress);
         try {
           await invoke('cmd_download_model', { model: newModel });
+          clearInterval(pollInterval);
+          progress.setStatus('Téléchargement terminé ✓');
+          await new Promise(r => setTimeout(r, 600));
+          progress.close();
         } catch (err) {
-          statusEl.textContent = 'Échec du téléchargement : ' + err;
-          downloadBtn.disabled = false;
-          downloadBtn.textContent = 'Télécharger';
+          clearInterval(pollInterval);
+          progress.close();
+          await confirmViaDialog({
+            title: 'Échec du téléchargement',
+            message: String(err),
+            confirmLabel: 'OK',
+            cancelLabel: '',
+            confirmKind: 'primary',
+          });
           select.value = previousValue; // revert
           return;
         }
-        downloadBtn.disabled = false;
-        downloadBtn.textContent = 'Télécharger';
       }
 
       // Écrit transcription.model + dictation.model + live_transcript.model
