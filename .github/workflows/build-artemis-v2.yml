@@ -147,11 +147,22 @@ jobs:
             https://github.com/thewh1teagle/pyannote-rs/releases/download/v0.1.0/wespeaker_en_voxceleb_CAM++.onnx
           ls -lh tauri/src-tauri/bundled-models/
 
+      # Windows long-path fix : la sous-build whisper-rs-sys → vulkan-shaders-gen
+      # génère des chemins > 260 chars (FileTracker FTK1011 dans les .tlog). On
+      # force target/ à un chemin racine court (C:\t) pour contourner.
+      - name: Enable Windows long paths + short CARGO_TARGET_DIR
+        shell: powershell
+        run: |
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force | Out-Null
+          git config --system core.longpaths true
+          New-Item -ItemType Directory -Path "C:\t" -Force | Out-Null
+
       - name: Build Tauri NSIS installer with Artemis V2 defaults
         working-directory: tauri/src-tauri
         shell: bash
         env:
           CARGO_NET_RETRY: "3"
+          CARGO_TARGET_DIR: "C:\\t"
           GGML_NATIVE: "OFF"
           GGML_AVX: "ON"
           GGML_AVX2: "ON"
@@ -165,9 +176,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t installers < <(find target/release/bundle/nsis -maxdepth 1 -type f -name '*.exe' | sort)
+          # target/ redirigé vers C:\t via CARGO_TARGET_DIR pour contourner
+          # la limite de 260 chars des chemins MSBuild sous Windows.
+          mapfile -t installers < <(find /c/t/release/bundle/nsis -maxdepth 1 -type f -name '*.exe' 2>/dev/null | sort)
           if [ "${#installers[@]}" -eq 0 ]; then
-            echo "ERROR: no NSIS installer produced under target/release/bundle/nsis" >&2
+            mapfile -t installers < <(find target/release/bundle/nsis -maxdepth 1 -type f -name '*.exe' 2>/dev/null | sort)
+          fi
+          if [ "${#installers[@]}" -eq 0 ]; then
+            echo "ERROR: no NSIS installer produced (checked C:\\t/release/bundle/nsis and target/release/bundle/nsis)" >&2
             exit 1
           fi
           cp -f "${installers[0]}" Minutes-Artemis-V2-Setup.exe
