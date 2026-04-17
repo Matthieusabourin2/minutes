@@ -633,6 +633,16 @@ fn attribute_meeting_speakers(
             transcript = diarize::apply_confirmed_names(&transcript, &speaker_map);
         }
 
+        // Artemis V2 : fold tous les SPEAKER_X anonymes restants sous un
+        // label unique "Client". Évite que pyannote sur-segmentant (4
+        // clusters détectés sur un RDV à 2 personnes, à cause du bruit /
+        // volume / angle micro) produise 3 labels distincts SPEAKER_2,
+        // SPEAKER_3, SPEAKER_4 dans la transcription — qui se lirait comme
+        // 3 interlocuteurs alors qu'il n'y en a qu'un côté client.
+        // L'utilisateur peut toujours renommer ligne-par-ligne si un vrai
+        // 2e interlocuteur (technique, partenaire) doit être distingué.
+        transcript = diarize::fold_unmatched_speakers(&transcript, "Client");
+
         return AttributionProcessingResult {
             debug: AttributionDebugInfo {
                 capture_backend,

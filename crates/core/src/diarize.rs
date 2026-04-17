@@ -113,6 +113,44 @@ fn is_non_lexical_event_text(text: &str) -> bool {
     trimmed.starts_with('[') && trimmed.ends_with(']')
 }
 
+/// Artemis V2 : après `apply_confirmed_names`, replace les labels anonymes
+/// (`SPEAKER_X`) restants par un label unique commun (typiquement "Client").
+///
+/// Cas d'usage : 1 commercial enrôlé + N prospects non enrôlés. Pyannote
+/// peut sur-segmenter (détecter 4 speakers sur un RDV à 2 à cause du bruit,
+/// changements de volume, etc.). Les artefacts SPEAKER_2, SPEAKER_3,
+/// SPEAKER_4 seraient lisibles comme 3 interlocuteurs distincts dans la
+/// transcription, ce qui est faux. On les plie tous sous un label unique
+/// — l'utilisateur pourra ensuite renommer ligne-par-ligne si un vrai
+/// 2e interlocuteur devait être distingué.
+pub fn fold_unmatched_speakers(transcript: &str, replacement_label: &str) -> String {
+    let mut output = String::with_capacity(transcript.len());
+    for line in transcript.lines() {
+        let mut replaced = false;
+        if let Some(rest) = line.strip_prefix('[') {
+            if let Some(bracket_end) = rest.find(']') {
+                let inside = &rest[..bracket_end];
+                if let Some(space_pos) = inside.find(' ') {
+                    let label = &inside[..space_pos];
+                    if label.starts_with("SPEAKER_") {
+                        let tc_and_rest = &rest[space_pos..];
+                        output.push('[');
+                        output.push_str(replacement_label);
+                        output.push_str(tc_and_rest);
+                        output.push('\n');
+                        replaced = true;
+                    }
+                }
+            }
+        }
+        if !replaced {
+            output.push_str(line);
+            output.push('\n');
+        }
+    }
+    output
+}
+
 /// Model filenames expected by pyannote-rs.
 pub const SEGMENTATION_MODEL: &str = "segmentation-3.0.onnx";
 
@@ -1816,6 +1854,35 @@ mod tests {
             }],
         );
         assert_eq!(result, transcript);
+    }
+
+    #[test]
+    fn fold_unmatched_speakers_replaces_anonymous_labels() {
+        let transcript = "[Matthieu Sabourin 0:00] Bonjour\n[SPEAKER_2 0:05] Hello\n[SPEAKER_3 0:10] Hi\n[SPEAKER_4 0:12] Ok\n";
+        let result = fold_unmatched_speakers(transcript, "Client");
+        assert!(result.contains("[Matthieu Sabourin 0:00] Bonjour"));
+        assert!(result.contains("[Client 0:05] Hello"));
+        assert!(result.contains("[Client 0:10] Hi"));
+        assert!(result.contains("[Client 0:12] Ok"));
+        assert!(!result.contains("SPEAKER_"));
+    }
+
+    #[test]
+    fn fold_unmatched_speakers_preserves_non_speaker_lines() {
+        let transcript = "# Heading\n\n[SPEAKER_1 0:00] Hey\nSome body text\n";
+        let result = fold_unmatched_speakers(transcript, "Client");
+        assert!(result.contains("# Heading"));
+        assert!(result.contains("Some body text"));
+        assert!(result.contains("[Client 0:00] Hey"));
+    }
+
+    #[test]
+    fn fold_unmatched_speakers_preserves_already_named_labels() {
+        let transcript = "[Matthieu 0:00] A\n[Mme Dupont 0:05] B\n[SPEAKER_7 0:10] C\n";
+        let result = fold_unmatched_speakers(transcript, "Client");
+        assert!(result.contains("[Matthieu 0:00] A"));
+        assert!(result.contains("[Mme Dupont 0:05] B"));
+        assert!(result.contains("[Client 0:10] C"));
     }
 
     #[test]

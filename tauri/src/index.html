@@ -6740,42 +6740,56 @@
       setTimeout(() => { const first = list.querySelector('input'); if (first) first.focus(); }, 50);
 
       return new Promise((resolve) => {
+        const abort = new AbortController();
+        let resolved = false;
         const finish = async (confirmed) => {
+          if (resolved) return;
           if (!confirmed) {
+            resolved = true;
+            abort.abort();
             backdrop.remove();
             resolve(false);
             return;
           }
-          // Build mapping (ignore empty values)
           const mapping = {};
           for (const [label, input] of Object.entries(inputs)) {
             const v = input.value.trim();
             if (v && v !== label) mapping[label] = v;
           }
           if (Object.keys(mapping).length === 0) {
+            resolved = true;
+            abort.abort();
             backdrop.remove();
             resolve(false);
             return;
           }
           try {
             await invoke('cmd_rename_speakers', { path, mapping });
+            resolved = true;
+            abort.abort();
             backdrop.remove();
-            // Re-ouvrir le RDV pour voir les nouveaux noms
             openMeetingDetail(path);
             resolve(true);
           } catch (e) {
             alert('Erreur lors du renommage : ' + e);
+            resolved = true;
+            abort.abort();
             backdrop.remove();
             resolve(false);
           }
         };
-        backdrop.querySelector('[data-role="confirm"]').addEventListener('click', () => finish(true));
-        backdrop.querySelector('[data-role="cancel"]').addEventListener('click', () => finish(false));
+        backdrop.querySelector('[data-role="confirm"]').addEventListener('click', () => finish(true), { signal: abort.signal });
+        backdrop.querySelector('[data-role="cancel"]').addEventListener('click', () => finish(false), { signal: abort.signal });
         backdrop.querySelector('[data-role="per-line"]').addEventListener('click', () => {
+          if (resolved) return;
+          resolved = true;
+          abort.abort();
           backdrop.remove();
           openPerLineRename(path, speakers);
           resolve(false);
-        });
+        }, { signal: abort.signal });
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(false); }, { signal: abort.signal });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') finish(false); }, { signal: abort.signal });
       });
     }
 
@@ -6913,8 +6927,13 @@
       setTimeout(() => { const first = list.querySelector('input[type="text"]'); if (first) first.focus(); }, 50);
 
       return new Promise((resolve) => {
+        const abort = new AbortController();
+        let resolved = false;
         const finish = async (confirmed) => {
+          if (resolved) return;
           if (!confirmed) {
+            resolved = true;
+            abort.abort();
             backdrop.remove();
             resolve(false);
             return;
@@ -6926,24 +6945,33 @@
               new_label: r.labelInput.value.trim(),
             }));
           if (updates.length === 0) {
+            resolved = true;
+            abort.abort();
             backdrop.remove();
             resolve(false);
             return;
           }
           try {
-            const changed = await invoke('cmd_update_transcript_labels', { path, updates });
+            await invoke('cmd_update_transcript_labels', { path, updates });
+            resolved = true;
+            abort.abort();
             backdrop.remove();
-            // Re-ouvrir le RDV pour voir les changements
             openMeetingDetail(path);
             resolve(true);
           } catch (e) {
             alert('Erreur : ' + e);
+            resolved = true;
+            abort.abort();
             backdrop.remove();
             resolve(false);
           }
         };
-        backdrop.querySelector('[data-role="confirm"]').addEventListener('click', () => finish(true));
-        backdrop.querySelector('[data-role="cancel"]').addEventListener('click', () => finish(false));
+        backdrop.querySelector('[data-role="confirm"]').addEventListener('click', () => finish(true), { signal: abort.signal });
+        backdrop.querySelector('[data-role="cancel"]').addEventListener('click', () => finish(false), { signal: abort.signal });
+        // Artemis V2 : ESC + click hors carte pour sortir — sinon l'user
+        // était bloqué dans la popup sans autre issue que le bouton cancel.
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) finish(false); }, { signal: abort.signal });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') finish(false); }, { signal: abort.signal });
       });
     }
 
