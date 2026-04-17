@@ -6302,7 +6302,74 @@
     });
 
     // ── Recording controls ──
+    // Artemis V2 : avant de démarrer un record, vérifier que le modèle
+    // whisper configuré est bien téléchargé. Sans ça, le user cliquait
+    // "Démarrer" et se prenait une erreur "Transcription model not
+    // found" côté pipeline (ex: config pointe vers large-v3-turbo mais
+    // le fichier n'a jamais été récupéré à cause d'un bug antérieur).
+    //
+    // Retourne true si le record peut continuer (modèle présent ou
+    // téléchargé avec succès), false sinon (user a annulé ou échec).
+    async function ensureModelReady() {
+      try {
+        const s = await invoke('cmd_get_settings');
+        const configured = s.transcription.model;
+        const downloaded = s.transcription.downloaded_models || [];
+        if (downloaded.includes(configured)) return true;
+
+        // Modèle configuré mais pas sur disque → popup
+        const labels = {
+          tiny: 'tiny (~75 Mo)',
+          base: 'base (~148 Mo)',
+          small: 'small (~466 Mo)',
+          medium: 'medium (~1,5 Go)',
+          'large-v3-turbo': 'large-v3-turbo (~1,6 Go) — recommandé',
+          'large-v3': 'large-v3 (~3,1 Go)',
+        };
+        const ok = await confirmViaDialog({
+          title: `Modèle "${configured}" manquant`,
+          message: `Le modèle de transcription "${labels[configured] || configured}" n'est pas encore téléchargé. Pour enregistrer, il faut le télécharger maintenant (quelques minutes selon ta connexion). Télécharger ?`,
+          confirmLabel: 'Télécharger maintenant',
+          cancelLabel: 'Annuler',
+          confirmKind: 'primary',
+        });
+        if (!ok) return false;
+
+        // Afficher un feedback simple pendant le download (dans la status pill)
+        const pill = document.getElementById('status-pill');
+        const previousPillClass = pill?.className || 'status-pill';
+        const previousPillText = pill?.textContent || 'inactif';
+        if (pill) {
+          pill.className = 'status-pill processing';
+          pill.textContent = `Téléchargement ${configured}…`;
+        }
+
+        try {
+          await invoke('cmd_download_model', { model: configured });
+        } catch (err) {
+          if (pill) {
+            pill.className = previousPillClass;
+            pill.textContent = previousPillText;
+          }
+          alert('Échec du téléchargement : ' + err);
+          return false;
+        }
+
+        if (pill) {
+          pill.className = previousPillClass;
+          pill.textContent = previousPillText;
+        }
+        return true;
+      } catch (e) {
+        console.error('ensureModelReady:', e);
+        // En cas d'erreur inattendue, on laisse passer et le backend
+        // gérera (message d'erreur générique à l'user).
+        return true;
+      }
+    }
+
     document.getElementById('btn-record').addEventListener('click', async () => {
+      if (!(await ensureModelReady())) return;
       try {
         await invoke('cmd_start_recording');
       } catch (e) {
@@ -6311,6 +6378,7 @@
     });
 
     quickThoughtButton.addEventListener('click', async () => {
+      if (!(await ensureModelReady())) return;
       try {
         await invoke('cmd_start_recording', { mode: 'quick-thought' });
       } catch (e) {
