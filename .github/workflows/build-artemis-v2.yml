@@ -21,10 +21,13 @@ env:
 jobs:
   # ────────────────────────────────────────────────────────────────
   # Tests (fmt + clippy + unit) — bloquant pour le build
+  # Tourne sur macOS (moins cher en temps mort que d'installer alsa/gtk
+  # manuellement sur ubuntu). minutes-core dépend de cpal → alsa sur
+  # Linux, pas indispensable pour un simple cargo check core-only.
   # ────────────────────────────────────────────────────────────────
   tests:
     name: Tests (fmt / clippy / unit)
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
