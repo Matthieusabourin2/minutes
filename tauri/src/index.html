@@ -4457,7 +4457,7 @@
         <div class="detail-actions">
           <button class="btn btn-secondary btn-sm" id="btn-create-artifact">Créer un brouillon</button>
           <button class="btn btn-primary btn-sm" id="btn-discuss-ai">Échanger avec l'assistant</button>
-          <button class="btn btn-secondary btn-sm" id="btn-rename-speakers" hidden>👥 Renommer les intervenants</button>
+          <button class="btn btn-secondary btn-sm" id="btn-rename-speakers">👥 Renommer les intervenants</button>
           <button class="btn btn-secondary btn-sm" id="btn-open-external">Ouvrir dans l'éditeur</button>
           <button class="btn btn-danger btn-sm" id="btn-delete-meeting">Supprimer</button>
         </div>
@@ -6680,27 +6680,35 @@
       if (!speakers || speakers.length === 0) {
         await confirmViaDialog({
           title: 'Aucun intervenant détecté',
-          message: 'Ce compte-rendu ne contient pas de labels SPEAKER_XX à renommer. La diarisation doit avoir été activée lors de l\'enregistrement (Réglages → Diarisation + modèles téléchargés).',
+          message: 'Ce compte-rendu ne contient aucune ligne transcript au format [Nom 0:00]. La diarisation n\'a peut-être pas tourné à l\'enregistrement (activée à partir de la beta.3 si les modèles sont installés).',
           confirmLabel: 'OK',
           cancelLabel: '',
         });
         return;
       }
 
-      // Build dialog dynamiquement
+      const totalLines = speakers.reduce((sum, sp) => sum + (sp.count || 0), 0);
+      const msgExtra = speakers.length === 1
+        ? `<br><br><strong>⚠ Un seul intervenant détecté dans les ${totalLines} lignes du transcript.</strong> Le voice matching a peut-être attribué plusieurs voix au même profil enrôlé. Si tu renommes en "Céline", TOUTES les lignes vont devenir "Céline" — corrige à la main ensuite si besoin dans le fichier .md.`
+        : `${totalLines} lignes transcript réparties sur ${speakers.length} intervenants. Laisse vide pour garder le label actuel.`;
+
       const backdrop = document.createElement('div');
       backdrop.className = 'artemis-confirm-backdrop';
       backdrop.innerHTML = `
-        <div class="artemis-confirm-card" role="dialog" aria-modal="true" style="max-width:520px">
+        <div class="artemis-confirm-card" role="dialog" aria-modal="true" style="max-width:560px">
           <div class="artemis-confirm-title">Renommer les intervenants</div>
-          <div class="artemis-confirm-message">Laisse vide pour garder le label générique. Le markdown sera réécrit avec les nouveaux noms.</div>
+          <div class="artemis-confirm-message" id="rename-subtitle"></div>
           <div class="artemis-rename-list"></div>
-          <div class="artemis-confirm-actions">
-            <button class="btn btn-secondary btn-sm" data-role="cancel">Annuler</button>
-            <button class="btn btn-primary btn-sm" data-role="confirm">Appliquer</button>
+          <div class="artemis-confirm-actions" style="justify-content:space-between">
+            <button class="btn btn-secondary btn-sm" data-role="per-line" title="Mode avancé : réattribuer chaque ligne individuellement">🎯 Mode par ligne</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary btn-sm" data-role="cancel">Annuler</button>
+              <button class="btn btn-primary btn-sm" data-role="confirm">Appliquer (global)</button>
+            </div>
           </div>
         </div>
       `;
+      backdrop.querySelector('#rename-subtitle').innerHTML = msgExtra;
       const list = backdrop.querySelector('.artemis-rename-list');
       const inputs = {};
       for (const sp of speakers) {
@@ -6709,15 +6717,21 @@
         const labelEl = document.createElement('div');
         labelEl.className = 'artemis-rename-label';
         labelEl.textContent = sp.label;
+        const countEl = document.createElement('div');
+        countEl.style.cssText = 'grid-column:1;grid-row:2;font-size:10px;color:var(--text-tertiary);font-family:var(--font-mono,monospace)';
+        countEl.textContent = (sp.count || 0) + ' lignes';
         const sampleEl = document.createElement('div');
         sampleEl.className = 'artemis-rename-sample';
-        sampleEl.textContent = '« ' + (sp.sample || '').trim() + (sp.sample.length >= 120 ? '…' : '') + ' »';
+        sampleEl.textContent = '« ' + (sp.sample || '').trim() + ((sp.sample || '').length >= 140 ? '…' : '') + ' »';
         const input = document.createElement('input');
         input.type = 'text';
-        input.placeholder = 'Ex : Franck · Pierre · Client';
+        input.placeholder = sp.label.startsWith('SPEAKER_')
+          ? 'Nouveau nom (ex : Pierre, Client, Épouse)'
+          : 'Renommer (laisse vide pour garder "' + sp.label + '")';
         input.className = 'artemis-rename-input';
         inputs[sp.label] = input;
         row.appendChild(labelEl);
+        row.appendChild(countEl);
         row.appendChild(sampleEl);
         row.appendChild(input);
         list.appendChild(row);
@@ -6751,6 +6765,179 @@
             resolve(true);
           } catch (e) {
             alert('Erreur lors du renommage : ' + e);
+            backdrop.remove();
+            resolve(false);
+          }
+        };
+        backdrop.querySelector('[data-role="confirm"]').addEventListener('click', () => finish(true));
+        backdrop.querySelector('[data-role="cancel"]').addEventListener('click', () => finish(false));
+        backdrop.querySelector('[data-role="per-line"]').addEventListener('click', () => {
+          backdrop.remove();
+          openPerLineRename(path, speakers);
+          resolve(false);
+        });
+      });
+    }
+
+    // Artemis V2 : mode renommage par ligne — permet de splitter un label
+    // unique mal attribué (ex : 46 lignes 'Matthieu Sabourin' alors que
+    // Céline parle sur 15 d'entre elles) en corrigeant chaque ligne
+    // individuellement avec un dropdown.
+    async function openPerLineRename(path, existingSpeakers) {
+      let lines;
+      try {
+        lines = await invoke('cmd_get_transcript_lines', { path });
+      } catch (e) {
+        alert('Impossible de lire le transcript : ' + e);
+        return;
+      }
+      if (!lines || lines.length === 0) {
+        alert('Aucune ligne transcript trouvée.');
+        return;
+      }
+
+      // Liste des labels existants + options génériques suggérées
+      const existingLabels = [...new Set(existingSpeakers.map(s => s.label))];
+      const commonSuggestions = ['Matthieu Sabourin', 'Client', 'Prospect', 'Céline', 'SPEAKER_1', 'SPEAKER_2'];
+      const allOptions = [...new Set([...existingLabels, ...commonSuggestions])];
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'artemis-confirm-backdrop';
+      backdrop.innerHTML = `
+        <div class="artemis-confirm-card artemis-perline-card" role="dialog" aria-modal="true">
+          <div class="artemis-confirm-title">Renommage par ligne</div>
+          <div class="artemis-confirm-message">
+            Chaque ligne transcript est affichée ci-dessous avec son intervenant actuel. Clique sur un nom pour le modifier (ou tape un nouveau nom). Seules les lignes modifiées seront écrites.
+            <br><br>
+            💡 Astuce : utilise la touche <kbd>Tab</kbd> pour naviguer rapidement entre les lignes.
+          </div>
+          <div class="artemis-perline-toolbar">
+            <input type="text" id="perline-bulk-name" placeholder="Nom pour la sélection" class="artemis-rename-input" style="flex:1" />
+            <button class="btn btn-secondary btn-sm" data-role="bulk-apply" title="Applique ce nom à toutes les lignes cochées">Appliquer aux cochées</button>
+            <button class="btn btn-secondary btn-sm" data-role="toggle-all">Tout cocher</button>
+          </div>
+          <div class="artemis-perline-list"></div>
+          <div class="artemis-confirm-actions" style="justify-content:space-between">
+            <div id="perline-changes-count" style="font-size:12px;color:var(--text-secondary)">0 modification</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary btn-sm" data-role="cancel">Annuler</button>
+              <button class="btn btn-primary btn-sm" data-role="confirm">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const list = backdrop.querySelector('.artemis-perline-list');
+      const suggestionsDatalistId = 'artemis-perline-suggestions';
+      const datalist = document.createElement('datalist');
+      datalist.id = suggestionsDatalistId;
+      for (const opt of allOptions) {
+        const o = document.createElement('option');
+        o.value = opt;
+        datalist.appendChild(o);
+      }
+      backdrop.appendChild(datalist);
+
+      const rows = [];
+      for (const line of lines) {
+        const row = document.createElement('div');
+        row.className = 'artemis-perline-row';
+        row.dataset.originalLabel = line.label;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'artemis-perline-check';
+
+        const tc = document.createElement('span');
+        tc.className = 'artemis-perline-tc';
+        tc.textContent = line.timecode;
+
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.className = 'artemis-perline-label';
+        labelInput.value = line.label;
+        labelInput.setAttribute('list', suggestionsDatalistId);
+
+        const text = document.createElement('div');
+        text.className = 'artemis-perline-text';
+        text.textContent = line.text;
+
+        row.appendChild(checkbox);
+        row.appendChild(tc);
+        row.appendChild(labelInput);
+        row.appendChild(text);
+
+        list.appendChild(row);
+        rows.push({
+          line_index: line.line_index,
+          originalLabel: line.label,
+          checkbox,
+          labelInput,
+          row,
+        });
+      }
+
+      const updateCount = () => {
+        const changed = rows.filter(r => r.labelInput.value.trim() !== r.originalLabel).length;
+        backdrop.querySelector('#perline-changes-count').textContent =
+          changed + (changed === 1 ? ' modification' : ' modifications');
+      };
+      for (const r of rows) {
+        r.labelInput.addEventListener('input', updateCount);
+      }
+
+      // Bulk actions
+      backdrop.querySelector('[data-role="bulk-apply"]').addEventListener('click', () => {
+        const bulkName = backdrop.querySelector('#perline-bulk-name').value.trim();
+        if (!bulkName) {
+          backdrop.querySelector('#perline-bulk-name').focus();
+          return;
+        }
+        let applied = 0;
+        for (const r of rows) {
+          if (r.checkbox.checked) {
+            r.labelInput.value = bulkName;
+            applied++;
+          }
+        }
+        if (applied === 0) alert('Aucune ligne cochée. Coche les lignes à renommer d\'abord.');
+        updateCount();
+      });
+      backdrop.querySelector('[data-role="toggle-all"]').addEventListener('click', (e) => {
+        const allChecked = rows.every(r => r.checkbox.checked);
+        for (const r of rows) r.checkbox.checked = !allChecked;
+        e.target.textContent = allChecked ? 'Tout cocher' : 'Tout décocher';
+      });
+
+      document.body.appendChild(backdrop);
+      setTimeout(() => { const first = list.querySelector('input[type="text"]'); if (first) first.focus(); }, 50);
+
+      return new Promise((resolve) => {
+        const finish = async (confirmed) => {
+          if (!confirmed) {
+            backdrop.remove();
+            resolve(false);
+            return;
+          }
+          const updates = rows
+            .filter(r => r.labelInput.value.trim() && r.labelInput.value.trim() !== r.originalLabel)
+            .map(r => ({
+              line_index: r.line_index,
+              new_label: r.labelInput.value.trim(),
+            }));
+          if (updates.length === 0) {
+            backdrop.remove();
+            resolve(false);
+            return;
+          }
+          try {
+            const changed = await invoke('cmd_update_transcript_labels', { path, updates });
+            backdrop.remove();
+            // Re-ouvrir le RDV pour voir les changements
+            openMeetingDetail(path);
+            resolve(true);
+          } catch (e) {
+            alert('Erreur : ' + e);
             backdrop.remove();
             resolve(false);
           }
@@ -7814,18 +8001,6 @@
       detailOverlay.classList.add('active');
       persistRecallWorkspaceState({ currentMeetingPath: detail.path });
 
-      // Artemis V2 : afficher le bouton "Renommer intervenants" ssi le
-      // CR contient des labels SPEAKER_XX (= diarisation activée au record)
-      (async () => {
-        const renameBtn = document.getElementById('btn-rename-speakers');
-        if (!renameBtn) return;
-        try {
-          const speakers = await invoke('cmd_extract_speakers', { path: detail.path });
-          renameBtn.hidden = !(speakers && speakers.length > 0);
-        } catch (_) {
-          renameBtn.hidden = true;
-        }
-      })();
     }
 
     // Artemis: pile de navigation pour la popup détail. Chaque entrée

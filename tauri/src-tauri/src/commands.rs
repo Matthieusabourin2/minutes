@@ -5144,6 +5144,124 @@ pub async fn cmd_voice_enroll(
     .map_err(|e| format!("Tâche interrompue : {}", e))?
 }
 
+/// Artemis V2 : retourne la liste des lignes transcript avec leur label,
+/// timecode, texte et index de ligne dans le fichier. Pour le mode
+/// "renommage par ligne" qui permet de splitter manuellement un unique
+/// label attribué par erreur à plusieurs intervenants.
+#[tauri::command]
+pub fn cmd_get_transcript_lines(path: String) -> Result<Vec<serde_json::Value>, String> {
+    let config = Config::load();
+    let meeting_path = std::path::PathBuf::from(&path);
+    minutes_core::notes::validate_meeting_path(&meeting_path, &config.output_dir)?;
+
+    let content = std::fs::read_to_string(&meeting_path).map_err(|e| e.to_string())?;
+    let mut result = Vec::new();
+
+    for (idx, line) in content.lines().enumerate() {
+        let trimmed = line.trim_start();
+        if !trimmed.starts_with('[') {
+            continue;
+        }
+        let close_bracket = match trimmed.find(']') {
+            Some(pos) => pos,
+            None => continue,
+        };
+        let inside = &trimmed[1..close_bracket];
+        let tc_start = match inside.rfind(' ') {
+            Some(pos) => pos,
+            None => continue,
+        };
+        let tc = &inside[tc_start + 1..];
+        if !tc.contains(':') || !tc.chars().all(|c| c.is_ascii_digit() || c == ':') {
+            continue;
+        }
+        let label = inside[..tc_start].trim().to_string();
+        if label.is_empty() {
+            continue;
+        }
+        let text = trimmed[close_bracket + 1..].trim_start().to_string();
+        result.push(serde_json::json!({
+            "line_index": idx,
+            "label": label,
+            "timecode": tc,
+            "text": text,
+        }));
+    }
+
+    Ok(result)
+}
+
+/// Artemis V2 : applique un renommage PAR LIGNE sur le transcript d'un CR.
+/// Prend une liste de `{line_index, new_label}` et réécrit uniquement les
+/// lignes concernées. Préserve le reste du fichier octet-pour-octet.
+#[tauri::command]
+pub fn cmd_update_transcript_labels(
+    path: String,
+    updates: Vec<serde_json::Value>,
+) -> Result<usize, String> {
+    let config = Config::load();
+    let meeting_path = std::path::PathBuf::from(&path);
+    minutes_core::notes::validate_meeting_path(&meeting_path, &config.output_dir)?;
+
+    if updates.is_empty() {
+        return Ok(0);
+    }
+
+    // Build HashMap index → nouveau label
+    let mut map: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
+    for u in &updates {
+        let idx =
+            u.get("line_index")
+                .and_then(|v| v.as_u64())
+                .ok_or_else(|| "update entry missing line_index".to_string())? as usize;
+        let lbl = u
+            .get("new_label")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| "update entry missing new_label".to_string())?
+            .trim()
+            .to_string();
+        if lbl.is_empty() {
+            continue;
+        }
+        map.insert(idx, lbl);
+    }
+
+    let content = std::fs::read_to_string(&meeting_path).map_err(|e| e.to_string())?;
+    let mut out = String::with_capacity(content.len());
+    let mut changed = 0usize;
+
+    for (idx, line) in content.lines().enumerate() {
+        if let Some(new_label) = map.get(&idx) {
+            // Détecter le pattern `[old_label TC] text` pour remplacer juste
+            // la partie label (garde le timecode + texte intacts).
+            let trimmed = line.trim_start();
+            let leading_ws = &line[..line.len() - trimmed.len()];
+            if let Some(close_bracket) = trimmed.find(']') {
+                let inside = &trimmed[1..close_bracket];
+                if let Some(tc_start) = inside.rfind(' ') {
+                    let tc = &inside[tc_start + 1..];
+                    let rest = &trimmed[close_bracket + 1..];
+                    out.push_str(leading_ws);
+                    out.push_str(&format!("[{} {}]{}", new_label, tc, rest));
+                    out.push('\n');
+                    changed += 1;
+                    continue;
+                }
+            }
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+
+    // Retirer le \n final ajouté en trop si le fichier d'origine n'en avait pas
+    if !content.ends_with('\n') && out.ends_with('\n') {
+        out.pop();
+    }
+
+    std::fs::write(&meeting_path, out).map_err(|e| e.to_string())?;
+    Ok(changed)
+}
+
 /// Artemis V2 : renomme les labels speakers dans un CR markdown.
 /// Prend un mapping `SPEAKER_00 -> "Franck"` et réécrit TOUTES les
 /// occurrences dans le fichier (transcription + frontmatter speaker_map).
@@ -5186,9 +5304,14 @@ pub fn cmd_rename_speakers(
     Ok(())
 }
 
-/// Artemis V2 : extrait la liste des labels SPEAKER_* présents dans un CR,
-/// avec un échantillon de ce qu'ils ont dit (pour aider l'user à deviner
-/// qui c'est). Retourné trié par numéro de label.
+/// Artemis V2 : extrait TOUS les labels d'intervenants présents dans le
+/// transcript d'un CR (pas seulement SPEAKER_XX). Utile parce que le
+/// voice matching peut avoir déjà remplacé les SPEAKER_X par de vrais
+/// noms qui ont besoin d'être corrigés à leur tour.
+///
+/// Pattern reconnu : lignes qui commencent par `[<label> <mm:ss>]`.
+/// Le label peut contenir des espaces (ex : "Matthieu Sabourin").
+/// Retourne `{label, sample, count}` pour chaque label distinct.
 #[tauri::command]
 pub fn cmd_extract_speakers(path: String) -> Result<Vec<serde_json::Value>, String> {
     let config = Config::load();
@@ -5197,40 +5320,54 @@ pub fn cmd_extract_speakers(path: String) -> Result<Vec<serde_json::Value>, Stri
 
     let content = std::fs::read_to_string(&meeting_path).map_err(|e| e.to_string())?;
 
-    // Scan pour trouver les SPEAKER_XX et capturer leur 1er verbatim.
-    let mut seen: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
-    // Regex simple : `SPEAKER_` suivi de chiffres, puis `:` ou ` (` ou ` `
+    struct Seen {
+        count: usize,
+        sample: String,
+    }
+    let mut seen: std::collections::BTreeMap<String, Seen> = std::collections::BTreeMap::new();
+
     for line in content.lines() {
-        if let Some(pos) = line.find("SPEAKER_") {
-            let rest = &line[pos..];
-            // Récupère le label (ex : "SPEAKER_00")
-            let label: String = rest
-                .chars()
-                .take_while(|c| c.is_alphanumeric() || *c == '_')
-                .collect();
-            if label.len() < 9 {
-                continue; // pas un label valide
-            }
-            // Capture un sample de la phrase qui suit
-            let after_label = &rest[label.len()..];
-            // Retirer éventuels `:`, ` (00:12)`, etc.
-            let sample = after_label
-                .trim_start_matches(':')
-                .trim_start()
-                .chars()
-                .take(120)
-                .collect::<String>();
-            // On garde le PREMIER sample (pas écraser)
-            seen.entry(label).or_insert(sample);
+        let line = line.trim_start();
+        if !line.starts_with('[') {
+            continue;
+        }
+        let close_bracket = match line.find(']') {
+            Some(pos) => pos,
+            None => continue,
+        };
+        let inside = &line[1..close_bracket];
+        // Cherche le dernier ' ' qui sépare le label du timecode : le
+        // contenu après doit être un timecode de forme N+:NN.
+        let tc_start = match inside.rfind(' ') {
+            Some(pos) => pos,
+            None => continue,
+        };
+        let tc = &inside[tc_start + 1..];
+        if !tc.contains(':') || !tc.chars().all(|c| c.is_ascii_digit() || c == ':') {
+            continue;
+        }
+        let label = inside[..tc_start].trim().to_string();
+        if label.is_empty() {
+            continue;
+        }
+        let after = line[close_bracket + 1..].trim_start();
+        let entry = seen.entry(label).or_insert(Seen {
+            count: 0,
+            sample: String::new(),
+        });
+        entry.count += 1;
+        if entry.sample.is_empty() {
+            entry.sample = after.chars().take(140).collect();
         }
     }
 
     let result: Vec<serde_json::Value> = seen
         .into_iter()
-        .map(|(label, sample)| {
+        .map(|(label, s)| {
             serde_json::json!({
                 "label": label,
-                "sample": sample,
+                "sample": s.sample,
+                "count": s.count,
             })
         })
         .collect();

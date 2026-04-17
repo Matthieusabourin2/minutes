@@ -1429,6 +1429,8 @@ fn main() {
             commands::cmd_model_file_size,
             commands::cmd_extract_speakers,
             commands::cmd_rename_speakers,
+            commands::cmd_get_transcript_lines,
+            commands::cmd_update_transcript_labels,
             commands::cmd_list_voice_profiles,
             commands::cmd_delete_voice_profile,
             commands::cmd_voice_enroll,

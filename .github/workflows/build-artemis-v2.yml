@@ -17,6 +17,13 @@ env:
   CARGO_TERM_COLOR: always
   TAURI_CLI_VERSION: "2.10.1"
   ARTEMIS_FEATURES: "artemis-default-config"
+  # Artemis V2 : accélération matérielle whisper active par défaut sur les
+  # deux plateformes. Métal sur Apple Silicon (M1/M2/M3/M4) via ggml-metal,
+  # Vulkan sur Windows (universel : fonctionne avec les drivers GPU Intel,
+  # AMD, NVIDIA modernes). Sans ces flags, whisper retombe en CPU pur et
+  # le traitement prend ~4× le temps audio — hors cible user (≤ 1× RT).
+  ARTEMIS_FEATURES_MAC: "artemis-default-config,metal"
+  ARTEMIS_FEATURES_WIN: "artemis-default-config,vulkan"
 
 jobs:
   # ────────────────────────────────────────────────────────────────
@@ -93,6 +100,23 @@ jobs:
         shell: bash
         run: cargo install tauri-cli --version "${TAURI_CLI_VERSION}" --locked
 
+      # Artemis V2 : Vulkan SDK requis au BUILD par whisper-rs/vulkan (headers
+      # + loader). Au runtime, la plupart des laptops Windows 10/11 ont déjà
+      # le runtime Vulkan via leurs drivers GPU (Intel/AMD/NVIDIA).
+      - name: Install Vulkan SDK (Windows)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $VulkanVersion = '1.3.290.0'
+          $InstallerUrl = "https://sdk.lunarg.com/sdk/download/$VulkanVersion/windows/VulkanSDK-$VulkanVersion-Installer.exe"
+          Write-Host "Downloading Vulkan SDK $VulkanVersion..."
+          Invoke-WebRequest -Uri $InstallerUrl -OutFile VulkanSDK-Installer.exe
+          Write-Host "Installing Vulkan SDK silently..."
+          Start-Process -FilePath .\VulkanSDK-Installer.exe -ArgumentList '--root', 'C:\VulkanSDK', '--accept-licenses', '--default-answer', '--confirm-command', 'install' -Wait
+          echo "VULKAN_SDK=C:\VulkanSDK" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          echo "C:\VulkanSDK\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          Write-Host "Vulkan SDK installed at C:\VulkanSDK"
+
       - name: Generate Artemis default config (inject API key from secret)
         shell: bash
         env:
@@ -135,7 +159,7 @@ jobs:
           GGML_AVX512_VBMI: "OFF"
           GGML_AVX512_VNNI: "OFF"
           GGML_AVX512_BF16: "OFF"
-        run: cargo tauri build --features "${ARTEMIS_FEATURES}" --ci --bundles nsis --no-sign
+        run: cargo tauri build --features "${ARTEMIS_FEATURES_WIN}" --ci --bundles nsis --no-sign
 
       - name: Rename NSIS installer to Minutes-Artemis-V2-Setup.exe
         shell: bash
@@ -215,7 +239,7 @@ jobs:
 
       - name: Build Tauri app + DMG with Artemis V2 defaults (unsigned)
         working-directory: tauri/src-tauri
-        run: cargo tauri build --features "${ARTEMIS_FEATURES}" --bundles app,dmg
+        run: cargo tauri build --features "${ARTEMIS_FEATURES_MAC}" --bundles app,dmg
 
       - name: Inject auto-install script (.command) inside DMG staging folder
         run: |

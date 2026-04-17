@@ -139,16 +139,25 @@ pub fn embedding_model_info(name: &str) -> Option<&'static EmbeddingModelInfo> {
         url: "https://huggingface.co/Wespeaker/wespeaker-voxceleb-campplus-LM/resolve/main/voxceleb_CAM%2B%2B_LM.onnx",
         version: "wespeaker_voxceleb_CAM++_LM_v0.3",
     };
-
+    // Artemis V2 : pyannote/embedding (Hervé Bredin, ~17 Mo). Meilleure
+    // discrimination inter-speaker en français que CAM++ (entraîné
+    // principalement sur chinois). Même interface ONNX (input=waveform,
+    // output=embedding) donc drop-in compatible avec pyannote-rs.
+    static PYANNOTE_EMBEDDING: EmbeddingModelInfo = EmbeddingModelInfo {
+        filename: "pyannote_embedding.onnx",
+        url: "https://huggingface.co/deepghs/pyannote-embedding-onnx/resolve/main/model.onnx",
+        version: "pyannote_embedding_v0.1",
+    };
     match name {
         "cam++" => Some(&CAM_PP),
         "cam++-lm" => Some(&CAM_PP_LM),
+        "pyannote" | "pyannote-embedding" => Some(&PYANNOTE_EMBEDDING),
         _ => None,
     }
 }
 
 /// All recognized embedding model names (for help / error messages).
-pub const EMBEDDING_MODEL_NAMES: &[&str] = &["cam++", "cam++-lm"];
+pub const EMBEDDING_MODEL_NAMES: &[&str] = &["cam++", "cam++-lm", "pyannote"];
 
 /// Resolve from config, falling back to the default (cam++).
 pub fn embedding_model_for_config(config: &Config) -> &'static EmbeddingModelInfo {
