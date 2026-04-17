@@ -5731,23 +5731,23 @@ pub fn cmd_get_settings() -> serde_json::Value {
         "large-v3",
         "large-v3-turbo",
     ]
-        .iter()
-        .filter(|m| {
-            let pattern = format!("ggml-{}", m);
-            model_path
-                .read_dir()
-                .into_iter()
-                .flatten()
-                .flatten()
-                .any(|e| {
-                    e.file_name()
-                        .to_str()
-                        .map(|n| n.contains(&pattern))
-                        .unwrap_or(false)
-                })
-        })
-        .map(|s| s.to_string())
-        .collect();
+    .iter()
+    .filter(|m| {
+        let pattern = format!("ggml-{}", m);
+        model_path
+            .read_dir()
+            .into_iter()
+            .flatten()
+            .flatten()
+            .any(|e| {
+                e.file_name()
+                    .to_str()
+                    .map(|n| n.contains(&pattern))
+                    .unwrap_or(false)
+            })
+    })
+    .map(|s| s.to_string())
+    .collect();
 
     serde_json::json!({
         "config_path": path.display().to_string(),
