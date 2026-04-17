@@ -4783,7 +4783,10 @@
             </div>
             <div id="voices-list" style="margin-top:10px"></div>
             <div class="settings-section-inline settings-section-inline-tight" style="margin-top:10px">
-              <button class="btn btn-primary btn-sm" id="btn-enroll-voice">+ Enrôler ma voix</button>
+              <button class="btn btn-primary btn-sm" id="btn-enroll-voice">+ Enrôler une voix</button>
+            </div>
+            <div class="about-controls-meta" style="font-size:11px;margin-top:6px;opacity:0.8">
+              💡 Tu peux enrôler plusieurs voix : la tienne, celles de tes collègues qui utilisent la même machine, ou des prospects récurrents (avec leur consentement).
             </div>
           </div>
         </div>
@@ -6819,13 +6822,13 @@
       backdrop.className = 'artemis-confirm-backdrop';
       backdrop.innerHTML = `
         <div class="artemis-confirm-card" role="dialog" aria-modal="true" style="max-width:460px">
-          <div class="artemis-confirm-title">Enrôler ta voix</div>
+          <div class="artemis-confirm-title">Enrôler une voix</div>
           <div class="artemis-confirm-message">
-            Tu vas enregistrer 15 secondes de ta voix pour que l'app te reconnaisse automatiquement dans les futurs rendez-vous. Parle normalement (te présenter, raconter ta journée, peu importe — c'est ta voix qui compte pas le contenu).
+            La personne dont tu veux enrôler la voix va parler 15 secondes dans le micro. Sa voix sera ensuite reconnue automatiquement dans les futurs rendez-vous (SPEAKER_XX → son prénom). Parle normalement, c'est la voix qui compte pas le contenu.
           </div>
           <div style="margin-bottom:12px">
-            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Ton prénom (ou nom complet)</label>
-            <input type="text" id="voice-enroll-name" class="artemis-rename-input" placeholder="Ex : Franck" autocomplete="off" style="width:100%" />
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Prénom (ou nom complet)</label>
+            <input type="text" id="voice-enroll-name" class="artemis-rename-input" placeholder="Ex : Franck, Pierre Dubois, Marie…" autocomplete="off" style="width:100%" />
           </div>
           <div class="artemis-confirm-actions">
             <button class="btn btn-secondary btn-sm" data-role="cancel">Annuler</button>
