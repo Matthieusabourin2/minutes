@@ -46,10 +46,13 @@ jobs:
       - name: cargo fmt --check
         run: cargo fmt --all -- --check
 
-      - name: cargo clippy (no default features — pas de whisper pour rester rapide)
-        run: cargo clippy --workspace --no-default-features -- -D warnings
+      # Clippy + tests scopés à minutes-core uniquement (pas de deps GTK
+      # nécessaires côté Tauri → ubuntu-latest est suffisant). Les erreurs
+      # côté Tauri sont catch par le build CI réel sur macos/windows.
+      - name: cargo clippy (minutes-core only, no default features)
+        run: cargo clippy -p minutes-core --no-default-features -- -D warnings
 
-      - name: cargo test -p minutes-core --no-default-features --lib
+      - name: cargo test (minutes-core lib tests)
         run: cargo test -p minutes-core --no-default-features --lib
 
   # ────────────────────────────────────────────────────────────────
