@@ -1503,7 +1503,18 @@ fn validate_live_shortcut(shortcut: &str) -> Result<String, String> {
 }
 
 fn validate_download_model_name(model: &str) -> Result<&str, String> {
-    const ALLOWED_MODELS: [&str; 5] = ["tiny", "base", "small", "medium", "large-v3"];
+    // Artemis V2 : ajout de "large-v3-turbo" (référencé par le template
+    // config.toml + bouton onboarding ⭐ recommandé). Sans ça le download
+    // retournait "Unsupported model" et le user se retrouvait avec un
+    // config pointant vers un modèle absent → erreur au record.
+    const ALLOWED_MODELS: [&str; 6] = [
+        "tiny",
+        "base",
+        "small",
+        "medium",
+        "large-v3",
+        "large-v3-turbo",
+    ];
     if ALLOWED_MODELS.contains(&model) {
         Ok(model)
     } else {
@@ -5712,7 +5723,14 @@ pub fn cmd_get_settings() -> serde_json::Value {
 
     // Check which whisper model is downloaded
     let model_path = config.transcription.model_path.clone();
-    let downloaded_models: Vec<String> = ["tiny", "base", "small", "medium", "large-v3"]
+    let downloaded_models: Vec<String> = [
+        "tiny",
+        "base",
+        "small",
+        "medium",
+        "large-v3",
+        "large-v3-turbo",
+    ]
         .iter()
         .filter(|m| {
             let pattern = format!("ggml-{}", m);
