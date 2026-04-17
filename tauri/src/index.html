@@ -547,6 +547,22 @@
       letter-spacing: 0.3px;
     }
 
+    /* Artemis V2 : style "en pause" (ambre — mic actif mais non écrit) */
+    .status-pill.paused {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      opacity: 1;
+      background: rgba(203, 142, 42, 0.14);
+      color: #CB8E2A;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .btn-paused {
+      background: rgba(203, 142, 42, 0.16) !important;
+      color: #CB8E2A !important;
+    }
+
     .status-pill.processing {
       font-size: 11px;
       padding: 3px 10px;
@@ -4020,6 +4036,7 @@
       </div>
 
       <div class="recording-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-pause" title="Mettre en pause (le mic reste actif, reprise instantanée)">⏸ Pause</button>
         <button class="btn btn-danger btn-sm" id="btn-stop">Arrêter l'enregistrement</button>
       </div>
     </div>
@@ -6509,6 +6526,33 @@
       });
     }
 
+    // ── Artemis V2 : pause / reprise de l'enregistrement ──
+    // Le bouton toggle entre "⏸ Pause" et "▶ Reprendre". Le backend
+    // garde le stream mic actif mais skip l'écriture WAV pendant pause.
+    let isPaused = false;
+    const pauseBtn = document.getElementById('btn-pause');
+    pauseBtn.addEventListener('click', async () => {
+      try {
+        if (!isPaused) {
+          await invoke('cmd_pause_recording');
+          isPaused = true;
+          pauseBtn.textContent = '▶ Reprendre';
+          pauseBtn.classList.add('btn-paused');
+          const pill = document.getElementById('status-pill');
+          if (pill) { pill.textContent = 'en pause'; pill.className = 'status-pill paused'; }
+        } else {
+          await invoke('cmd_resume_recording');
+          isPaused = false;
+          pauseBtn.textContent = '⏸ Pause';
+          pauseBtn.classList.remove('btn-paused');
+          const pill = document.getElementById('status-pill');
+          if (pill) { pill.textContent = 'enregistrement'; pill.className = 'status-pill recording'; }
+        }
+      } catch (e) {
+        console.error('Pause/resume:', e);
+      }
+    });
+
     document.getElementById('btn-stop').addEventListener('click', async () => {
       try {
         stopRequested = true;
@@ -6521,6 +6565,10 @@
         processingStage.textContent = 'Sauvegarde audio et finalisation…';
         setFooterCaptureMode(false);
         startFastPoll();
+        // Artemis V2 : reset état bouton pause au stop
+        isPaused = false;
+        pauseBtn.textContent = '⏸ Pause';
+        pauseBtn.classList.remove('btn-paused');
         await invoke('cmd_stop_recording');
       } catch (e) {
         stopRequested = false;
@@ -8103,14 +8151,70 @@
       warmParakeetIfSelected('parakeet');
     });
     document.getElementById('settings-whisper-model').addEventListener('change', async (e) => {
-      await invoke('cmd_set_setting', { section: 'transcription', key: 'model', value: e.target.value });
-      const s = await invoke('cmd_get_settings');
+      // Artemis V2 : changer le modèle déclenche le téléchargement si le
+      // fichier n'est pas déjà sur disque. Sinon l'user bascule vers un
+      // modèle absent et se prend l'erreur "ggml-XXX.bin not found" au
+      // prochain enregistrement. On synchronise aussi transcription +
+      // dictation + live_transcript pour garantir la cohérence.
+      const select = e.target;
+      const newModel = select.value;
+      const previousValue = select.dataset.previousValue || newModel;
+      const statusEl = document.getElementById('settings-model-status');
+      const downloadBtn = document.getElementById('btn-download-model');
+
+      let s = await invoke('cmd_get_settings');
+      const isDownloaded = (s.transcription.downloaded_models || []).includes(newModel);
+
+      if (!isDownloaded) {
+        const labels = {
+          tiny: 'tiny (~75 Mo)',
+          base: 'base (~148 Mo)',
+          small: 'small (~466 Mo)',
+          medium: 'medium (~1,5 Go)',
+          'large-v3-turbo': 'large-v3-turbo (~1,6 Go) — recommandé',
+          'large-v3': 'large-v3 (~3,1 Go)',
+        };
+        const ok = await confirmViaDialog({
+          title: `Télécharger le modèle ${newModel} ?`,
+          message: `Le modèle "${labels[newModel] || newModel}" n'est pas encore sur ta machine. Il faut le télécharger pour pouvoir l'utiliser. Télécharger maintenant ? (quelques minutes selon ta connexion)`,
+          confirmLabel: 'Télécharger',
+          cancelLabel: 'Annuler',
+          confirmKind: 'primary',
+        });
+        if (!ok) {
+          select.value = previousValue; // revert
+          return;
+        }
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = 'Téléchargement…';
+        statusEl.textContent = `Téléchargement de ${newModel}… peut prendre quelques minutes.`;
+        try {
+          await invoke('cmd_download_model', { model: newModel });
+        } catch (err) {
+          statusEl.textContent = 'Échec du téléchargement : ' + err;
+          downloadBtn.disabled = false;
+          downloadBtn.textContent = 'Télécharger';
+          select.value = previousValue; // revert
+          return;
+        }
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = 'Télécharger';
+      }
+
+      // Écrit transcription.model + dictation.model + live_transcript.model
+      // pour garantir la cohérence entre enregistrement, dictée et DIRECT.
+      await invoke('cmd_set_setting', { section: 'transcription', key: 'model', value: newModel });
+      await invoke('cmd_set_setting', { section: 'dictation', key: 'model', value: newModel });
+      await invoke('cmd_set_setting', { section: 'live_transcript', key: 'model', value: newModel });
+
+      select.dataset.previousValue = newModel;
+      s = await invoke('cmd_get_settings');
       const dl = s.transcription.downloaded_models || [];
-      const isDownloaded = dl.includes(e.target.value);
-      document.getElementById('settings-model-status').textContent = isDownloaded
-        ? 'Downloaded: ' + dl.join(', ')
-        : dl.length ? 'Téléchargé : ' + dl.join(', ') + '  •  « ' + e.target.value + ' » pas encore téléchargé' : 'Aucun modèle téléchargé.';
-      document.getElementById('btn-download-model').classList.toggle('is-hidden', isDownloaded);
+      const nowDownloaded = dl.includes(newModel);
+      statusEl.textContent = nowDownloaded
+        ? 'Modèle actif : ' + newModel + ' ✓'
+        : 'Modèle « ' + newModel + ' » pas encore téléchargé';
+      downloadBtn.classList.toggle('is-hidden', nowDownloaded);
     });
     document.getElementById('btn-download-model').addEventListener('click', async () => {
       const model = document.getElementById('settings-whisper-model').value;

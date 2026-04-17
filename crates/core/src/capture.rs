@@ -16,9 +16,32 @@ static AUDIO_LEVEL: AtomicU32 = AtomicU32::new(0);
 /// Count of audio chunks dropped by the live sidecar channel (buffer full).
 static SIDECAR_DROPS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
+/// Artemis V2 : pause flag pour la feature "pause/resume" pendant un RDV.
+/// Quand true, le callback cpal saute l'écriture dans le WAV (mais le
+/// stream reste actif côté OS → le mic reste "up" et reprend instantané).
+/// Le flag est reset automatiquement au démarrage d'un record via
+/// `reset_pause()` pour qu'une session qui démarre ne soit jamais déjà
+/// en pause.
+static PAUSED: AtomicBool = AtomicBool::new(false);
+
 /// Get the current audio input level (0–100).
 pub fn audio_level() -> u32 {
     AUDIO_LEVEL.load(Ordering::Relaxed)
+}
+
+/// Artemis V2 : mettre l'enregistrement courant en pause (ne stoppe pas
+/// le stream OS, juste saute l'écriture WAV). Appelable même si pas
+/// d'enregistrement actif → idempotent.
+pub fn set_paused(paused: bool) {
+    PAUSED.store(paused, Ordering::Relaxed);
+}
+
+pub fn is_paused() -> bool {
+    PAUSED.load(Ordering::Relaxed)
+}
+
+pub fn reset_pause() {
+    PAUSED.store(false, Ordering::Relaxed);
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -594,6 +617,15 @@ fn build_capture_stream(
                     level_accum = 0.0;
                     level_count = 0;
                 }
+            }
+
+            // Artemis V2 : si en pause, on skip totalement l'écriture WAV
+            // + le fork sidecar. Le stream cpal reste actif (mic up côté OS)
+            // donc reprise instantanée. La durée pendant la pause n'est pas
+            // écrite dans le fichier audio → résumé perçoit la pause comme
+            // un saut dans la conversation (comportement attendu).
+            if PAUSED.load(Ordering::Relaxed) {
+                return;
             }
 
             // Write resampled samples to WAV as i16
@@ -1208,6 +1240,9 @@ pub fn record_to_wav(
 
     // Clear any stale stop sentinel from a previous session
     crate::pid::check_and_clear_sentinel();
+    // Artemis V2 : reset le flag de pause au cas où une session précédente
+    // aurait laissé le flag à true (crash, etc.).
+    reset_pause();
 
     let host = cpal::default_host();
     let device_override = match &capture_plan {

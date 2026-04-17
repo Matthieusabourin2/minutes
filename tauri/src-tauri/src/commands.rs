@@ -3982,6 +3982,29 @@ pub fn cmd_extend_recording() -> Result<(), String> {
     minutes_core::capture::write_extend_sentinel().map_err(|e| e.to_string())
 }
 
+/// Artemis V2 : mettre en pause l'enregistrement en cours. Le stream
+/// audio reste actif (reprise instantanée) mais les samples ne sont plus
+/// écrits dans le WAV pendant la pause.
+#[tauri::command]
+pub fn cmd_pause_recording() -> Result<(), String> {
+    minutes_core::capture::set_paused(true);
+    Ok(())
+}
+
+/// Artemis V2 : reprendre un enregistrement en pause.
+#[tauri::command]
+pub fn cmd_resume_recording() -> Result<(), String> {
+    minutes_core::capture::set_paused(false);
+    Ok(())
+}
+
+/// Artemis V2 : état courant de la pause (pour sync UI si le user a
+/// switché d'onglet ou rechargé la WebView).
+#[tauri::command]
+pub fn cmd_is_paused() -> bool {
+    minutes_core::capture::is_paused()
+}
+
 #[tauri::command]
 pub fn cmd_add_note(text: String) -> Result<String, String> {
     minutes_core::notes::add_note(&text)
