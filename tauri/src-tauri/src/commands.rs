@@ -6910,6 +6910,76 @@ mod tests {
         assert!(validate_download_model_name("tiny").is_ok());
     }
 
+    /// Artemis V2 régression guard : tout modèle exposé côté UI
+    /// (bouton onboarding + dropdown Settings + template config) doit
+    /// être accepté par le validator. Sans ce test, un ajout de bouton
+    /// onboarding sans mise à jour du validator casse silencieusement
+    /// le download (cf. bug `ggml-large-v3-turbo.bin not found` en
+    /// V2.0-beta.1).
+    #[test]
+    fn all_ui_exposed_models_are_validator_accepted() {
+        // Liste à tenir synchro avec :
+        //   - tauri/src/index.html `data-model="..."` dans renderSetupEmptyState
+        //   - tauri/src/index.html `<option value="...">` settings-whisper-model
+        //   - packaging/artemis/config.toml.template `model = "..."`
+        const UI_EXPOSED_MODELS: &[&str] = &[
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "large-v3-turbo",
+            "large-v3",
+        ];
+        for m in UI_EXPOSED_MODELS {
+            assert!(
+                validate_download_model_name(m).is_ok(),
+                "Model '{}' exposed dans l'UI mais refusé par le validator \
+                 → download silencieusement échoué chez l'user. \
+                 Ajoute '{}' à ALLOWED_MODELS dans validate_download_model_name.",
+                m,
+                m,
+            );
+        }
+    }
+
+    /// Artemis V2 régression guard : le modèle par défaut du template
+    /// config.toml doit être accepté par le validator (sinon le 1er
+    /// launch pointe vers un modèle téléchargeable introuvable).
+    #[test]
+    fn artemis_template_default_model_is_validator_accepted() {
+        let template = include_str!("../../../packaging/artemis/config.toml.template");
+        // Cherche la ligne `model = "..."` dans la section [transcription].
+        // On prend la PREMIÈRE occurrence après `[transcription]` pour pas
+        // matcher dictation/live_transcript/parakeet.
+        let mut in_transcription = false;
+        let mut found: Option<String> = None;
+        for line in template.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with('[') {
+                in_transcription = trimmed == "[transcription]";
+                continue;
+            }
+            if in_transcription {
+                if let Some(rest) = trimmed.strip_prefix("model") {
+                    let rest = rest.trim_start().trim_start_matches('=').trim();
+                    let rest = rest.trim_matches('"');
+                    found = Some(rest.to_string());
+                    break;
+                }
+            }
+        }
+        let model = found.expect(
+            "Impossible d'extraire `model = \"...\"` de [transcription] \
+             dans config.toml.template",
+        );
+        assert!(
+            validate_download_model_name(&model).is_ok(),
+            "Template config.toml default `model = \"{}\"` mais ce nom n'est pas \
+             dans validate_download_model_name. Synchronise les deux.",
+            model,
+        );
+    }
+
     #[test]
     fn palette_shortcut_choices_do_not_collide_with_other_minutes_choices() {
         use std::collections::HashSet;
