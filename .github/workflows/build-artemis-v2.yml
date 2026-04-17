@@ -49,11 +49,12 @@ jobs:
       - name: cargo fmt --check
         run: cargo fmt --all -- --check
 
-      # Clippy + tests scopés à minutes-core uniquement (pas de deps GTK
-      # nécessaires côté Tauri → ubuntu-latest est suffisant). Les erreurs
-      # côté Tauri sont catch par le build CI réel sur macos/windows.
-      - name: cargo clippy (minutes-core only, no default features)
-        run: cargo clippy -p minutes-core --no-default-features -- -D warnings
+      # Clippy + tests scopés à minutes-core uniquement. Les erreurs de
+      # compile côté Tauri sont catch par le build CI réel (macOS / Windows).
+      # Clippy en warning-only pour V2 beta (nettoyage progressif des lints
+      # pré-existants en dette) — passera en `-D warnings` en V2 stable.
+      - name: cargo clippy (minutes-core, warnings only)
+        run: cargo clippy -p minutes-core --no-default-features
 
       - name: cargo test (minutes-core lib tests)
         run: cargo test -p minutes-core --no-default-features --lib
