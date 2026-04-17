@@ -21,18 +21,46 @@
 
 ## Premier lancement (install)
 
-### Mac
+### Mac — méthode Terminal (recommandée, 30 secondes)
+
+L'app n'étant pas signée Apple Developer Program, macOS la met en
+quarantaine au téléchargement. Il faut la dé-quarantaine et la signer
+localement une seule fois. **Copie-colle ces 3 lignes dans ton Terminal
+(Applications > Utilitaires > Terminal) :**
+
+```bash
+sudo xattr -cr "/Applications/Artemis Paysages Enregistreur V2.app"
+sudo codesign --force --deep --sign - "/Applications/Artemis Paysages Enregistreur V2.app"
+open "/Applications/Artemis Paysages Enregistreur V2.app"
+```
+
+**Pré-requis** : avoir d'abord glissé l'app depuis le DMG dans le dossier
+`/Applications`. Résumé complet :
+
 1. Double-clique `Minutes-Artemis-V2.dmg`
 2. Glisse "Artemis Paysages Enregistreur V2" dans **Applications**
-3. Double-clique le script `Install-Artemis-V2.command` fourni avec le DMG
-4. Entre ton mot de passe admin une fois (ça dé-quarantaine et signe l'app)
-5. L'app se lance automatiquement
+3. Ouvre Terminal → copie-colle les 3 lignes ci-dessus → appuie Entrée
+4. Entre ton mot de passe admin (tu ne verras pas les caractères, c'est normal)
+5. L'app se lance automatiquement. Tu n'auras plus jamais à refaire ça.
+
+### Mac — alternative avec le script `.command` fourni
+
+Le DMG contient aussi `Install-Artemis-V2.command` qui fait la même chose
+en double-clic. Mais macOS Gatekeeper bloque aussi ce script. Pour
+l'autoriser, dans Terminal :
+
+```bash
+xattr -c ~/Downloads/Install-Artemis-V2.command
+```
+
+Puis double-clic sur le `.command` dans Finder → il marche.
 
 ### Windows
 1. Double-clique `Minutes-Artemis-V2-Setup.exe`
 2. NSIS gère l'install, suis les étapes
 3. Au premier lancement, Windows SmartScreen peut demander "Exécuter quand
-   même" → clique dessus (app non signée Microsoft, pas de risque)
+   même" → clique "Informations complémentaires" puis "Exécuter quand même"
+   (app non signée Microsoft, pas de risque)
 
 ### Premier démarrage (Mac + Windows)
 L'écran d'accueil te propose 4 modèles Whisper (transcription locale) :
@@ -155,9 +183,28 @@ et confidentialité → Microphone → autoriser l'app.
 Si Claude API a échoué (panne réseau), l'app sauve quand même la transcription
 brute. Tu peux relancer le traitement plus tard depuis la popup détail.
 
-### L'app ne se lance pas du tout (Mac)
-Tu as oublié l'étape `Install-Artemis-V2.command`. Lance-la manuellement depuis
-le DMG, puis retente.
+### L'app ne se lance pas (Mac) — dialogue "Apple could not verify…"
+macOS bloque l'app parce qu'elle n'est pas signée par un développeur Apple
+(l'abonnement Apple Developer Program à 99 €/an n'est pas encore pris
+pour la V2 beta). Pour débloquer, ouvre Terminal et colle :
+
+```bash
+sudo xattr -cr "/Applications/Artemis Paysages Enregistreur V2.app"
+sudo codesign --force --deep --sign - "/Applications/Artemis Paysages Enregistreur V2.app"
+open "/Applications/Artemis Paysages Enregistreur V2.app"
+```
+
+Entre ton mot de passe admin. Tu n'auras plus jamais à refaire cette
+opération sur cette machine.
+
+### Le script `.command` est bloqué par "Apple could not verify…"
+Même raison. Dans Terminal :
+
+```bash
+xattr -c ~/Downloads/Install-Artemis-V2.command
+```
+
+Puis double-clic sur le `.command`.
 
 ### Un brouillon ne s'affiche pas après création
 Va dans la popup détail du RDV → section "Documents associés" → clique "Ouvrir"
