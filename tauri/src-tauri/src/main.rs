@@ -905,7 +905,8 @@ fn main() {
             )?;
             let stop_item_ref = stop_item.clone();
             let sep = MenuItem::with_id(app, "sep1", "──────────", false, None::<&str>)?;
-            let note_item = MenuItem::with_id(app, "note", "Ajouter une note…", true, None::<&str>)?;
+            let note_item =
+                MenuItem::with_id(app, "note", "Ajouter une note…", true, None::<&str>)?;
             let list_item =
                 MenuItem::with_id(app, "list", "Ouvrir le dossier des RDV", true, None::<&str>)?;
             let paste_summary_item = MenuItem::with_id(
@@ -922,7 +923,8 @@ fn main() {
                 true,
                 None::<&str>,
             )?;
-            let assistant_item = MenuItem::with_id(app, "assistant", "Assistant", true, None::<&str>)?;
+            let assistant_item =
+                MenuItem::with_id(app, "assistant", "Assistant", true, None::<&str>)?;
             let screen_share_item = MenuItem::with_id(
                 app,
                 "screen-share-toggle",
@@ -1122,18 +1124,10 @@ fn main() {
                                 target_app.as_deref(),
                             ) {
                                 Ok(message) => {
-                                    commands::show_user_notification(
-                                        app,
-                                        label_fr,
-                                        &message,
-                                    );
+                                    commands::show_user_notification(app, label_fr, &message);
                                 }
                                 Err(err) => {
-                                    commands::show_user_notification(
-                                        app,
-                                        label_fr,
-                                        &err,
-                                    );
+                                    commands::show_user_notification(app, label_fr, &err);
                                 }
                             }
                         }

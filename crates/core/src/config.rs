@@ -746,8 +746,8 @@ fn maybe_migrate_from_v1() {
 
     let home = home_dir();
     let legacy_candidates = [
-        home.join(".artemis-paysages"),  // V1 Artemis
-        home.join(".minutes"),           // upstream silverstein/minutes
+        home.join(".artemis-paysages"), // V1 Artemis
+        home.join(".minutes"),          // upstream silverstein/minutes
     ];
 
     let legacy_dir = match legacy_candidates.iter().find(|p| p.exists()) {
@@ -795,7 +795,9 @@ fn maybe_migrate_from_v1() {
         };
         match result {
             Ok(()) => tracing::info!(name = %name, "V2 migration: copied"),
-            Err(e) => tracing::warn!(name = %name, error = %e, "V2 migration: copy failed (non-fatal)"),
+            Err(e) => {
+                tracing::warn!(name = %name, error = %e, "V2 migration: copy failed (non-fatal)")
+            }
         }
     }
 
@@ -841,8 +843,12 @@ fn maybe_seed_default_config(path: &Path) {
             }
         }
         match std::fs::write(path, ARTEMIS_DEFAULT_CONFIG_TOML) {
-            Ok(()) => tracing::info!(path = ?path, "seeded Artemis default config.toml on first launch"),
-            Err(e) => tracing::warn!(error = %e, path = ?path, "failed to seed Artemis default config.toml"),
+            Ok(()) => {
+                tracing::info!(path = ?path, "seeded Artemis default config.toml on first launch")
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, path = ?path, "failed to seed Artemis default config.toml")
+            }
         }
     }
     #[cfg(not(feature = "artemis-default-config"))]

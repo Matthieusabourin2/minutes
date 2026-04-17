@@ -1971,9 +1971,7 @@ fn stage_label(stage: minutes_core::pipeline::PipelineStage, mode: CaptureMode) 
         (minutes_core::pipeline::PipelineStage::Transcribing, CaptureMode::QuickThought) => {
             "Transcription de la note en cours…"
         }
-        (minutes_core::pipeline::PipelineStage::Diarizing, _) => {
-            "Identification des intervenants…"
-        }
+        (minutes_core::pipeline::PipelineStage::Diarizing, _) => "Identification des intervenants…",
         (minutes_core::pipeline::PipelineStage::Summarizing, CaptureMode::Meeting) => {
             "Analyse ProcessCom et génération du compte-rendu…"
         }
@@ -2454,10 +2452,7 @@ fn find_section_content<'a>(sections: &'a [MeetingSection], heading: &str) -> Op
 /// "Actions") first, then fall back to upstream English labels
 /// ("Summary", "Action Items") for meetings that predate the custom
 /// prompt.
-fn find_first_section<'a>(
-    sections: &'a [MeetingSection],
-    candidates: &[&str],
-) -> Option<&'a str> {
+fn find_first_section<'a>(sections: &'a [MeetingSection], candidates: &[&str]) -> Option<&'a str> {
     for candidate in candidates {
         if let Some(c) = find_section_content(sections, candidate) {
             return Some(c);
@@ -2768,8 +2763,13 @@ fn build_artifact_template(
                 [Votre prénom et nom]\n\
                 Artemis Paysages\n\
                 [Votre téléphone]\n",
-                profil = if profil_line.is_empty() { String::new() } else {
-                    format!("\nVotre projet tel que nous l'avons compris :\n{}\n", profil_line)
+                profil = if profil_line.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        "\nVotre projet tel que nous l'avons compris :\n{}\n",
+                        profil_line
+                    )
                 },
             )
         }
@@ -8506,7 +8506,6 @@ pub fn cmd_probe_shortcut(keycode: i64) -> serde_json::Value {
     })
 }
 
-
 // ─────────────────────────────────────────────────────────────────────
 // What's New (post-update release notes)
 // ─────────────────────────────────────────────────────────────────────
@@ -8939,9 +8938,8 @@ pub async fn cmd_chat_artifact(
     // any Claude-edited changes since the previous turn.
     let meeting_content: Option<String> = match &meeting_path {
         Some(path) => {
-            let content = std::fs::read_to_string(path).map_err(|e| {
-                format!("Lecture du compte-rendu impossible ({}): {}", path, e)
-            })?;
+            let content = std::fs::read_to_string(path)
+                .map_err(|e| format!("Lecture du compte-rendu impossible ({}): {}", path, e))?;
             if content.trim().is_empty() {
                 return Err("Le compte-rendu est vide.".to_string());
             }

@@ -52,9 +52,8 @@ pub fn create_workspace(config: &Config) -> Result<PathBuf, String> {
             if needs_repair {
                 let _ = std::fs::remove_file(&meetings_link);
                 #[cfg(unix)]
-                std::os::unix::fs::symlink(&config.output_dir, &meetings_link).map_err(|e| {
-                    format!("Failed to repair meetings symlink: {}", e)
-                })?;
+                std::os::unix::fs::symlink(&config.output_dir, &meetings_link)
+                    .map_err(|e| format!("Failed to repair meetings symlink: {}", e))?;
             }
         }
         Ok(_) => {
