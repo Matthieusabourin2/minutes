@@ -573,12 +573,79 @@ fn home_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"))
 }
 
+/// Artemis V2 : résolution du data root où vont tous les gros fichiers
+/// (modèle whisper 1,6 Go, modèles pyannote, voices.db, graph.db, RDV
+/// transcrits, etc.). 3 couches dans cet ordre :
+///
+/// 1. Variable d'env `ARTEMIS_DATA_DIR` — pour dev / scripts / override
+///    manuel. Ex : `set ARTEMIS_DATA_DIR=D:\ArtemisPaysages`.
+/// 2. Fichier bootstrap `<config_dir>/artemis-paysages-v2/data-dir.txt`
+///    contenant un chemin absolu. À éditer par l'utilisateur quand il
+///    installe sur un lecteur non-système (ex : laptop Surface avec
+///    SSD 256 Go saturé → data sur D:).
+/// 3. Fallback `~/.artemis-paysages-v2/` — compat historique.
+///
+/// Retourne `None` si aucun override défini (fallback classique).
+pub fn data_root_override() -> Option<PathBuf> {
+    let env = std::env::var_os("ARTEMIS_DATA_DIR");
+    let bootstrap_path = config_base_dir()
+        .join("artemis-paysages-v2")
+        .join("data-dir.txt");
+    let bootstrap_content = std::fs::read_to_string(&bootstrap_path).ok();
+    data_root_override_from(env, bootstrap_content)
+}
+
+/// Version pure-fonction pour tests. Implémente la logique de résolution
+/// sans side-effects (pas d'accès à l'env ni au filesystem).
+fn data_root_override_from(
+    env_value: Option<OsString>,
+    bootstrap_content: Option<String>,
+) -> Option<PathBuf> {
+    if let Some(v) = env_value {
+        if !v.is_empty() {
+            return Some(PathBuf::from(v));
+        }
+    }
+    if let Some(content) = bootstrap_content {
+        // Parcourt ligne par ligne : 1re ligne non-vide non-commentaire = le
+        // chemin. Permet à l'utilisateur de documenter son fichier avec des
+        // commentaires `#` en tête ou en queue sans casser la résolution.
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                continue;
+            }
+            return Some(PathBuf::from(trimmed));
+        }
+    }
+    None
+}
+
 fn minutes_dir() -> PathBuf {
-    // Artemis fork V2 : dossier data utilisateur renommé `~/.artemis-paysages-v2/`
-    // pour permettre la coexistence avec V1 (`~/.artemis-paysages/`) sur la
-    // même machine. Les RDV (`~/meetings/`) restent partagés entre les deux
-    // versions pour ne pas dupliquer le patrimoine du commercial.
+    // Artemis fork V2 : si un override est défini (env var ou bootstrap
+    // file), on l'utilise tel quel — l'utilisateur a explicitement choisi
+    // son emplacement. Sinon fallback sur `~/.artemis-paysages-v2/` pour
+    // la compat avec les machines déjà installées.
+    //
+    // La coexistence V1/V2 (V1 = `~/.artemis-paysages/`) est préservée
+    // uniquement dans le cas du fallback. Si l'utilisateur override vers
+    // D:\ArtemisV2, V1 et V2 peuvent coexister mais sur des lecteurs
+    // différents.
+    if let Some(root) = data_root_override() {
+        return root;
+    }
     home_dir().join(".artemis-paysages-v2")
+}
+
+/// Emplacement des RDV transcrits. Historiquement `~/meetings/` (partagé
+/// V1↔V2), relocaté sous `<data_root>/meetings/` quand un override est
+/// défini — le commercial qui déplace ses data sur D: veut que TOUT suive,
+/// pas que les .md restent sur C: à grossir petit à petit.
+pub fn meetings_dir() -> PathBuf {
+    if let Some(root) = data_root_override() {
+        return root.join("meetings");
+    }
+    home_dir().join("meetings")
 }
 
 fn config_base_dir_from(xdg_config_home: Option<OsString>, home: PathBuf) -> PathBuf {
@@ -602,7 +669,7 @@ fn config_path_from(xdg_config_home: Option<OsString>, home: PathBuf) -> PathBuf
 impl Default for Config {
     fn default() -> Self {
         Self {
-            output_dir: home_dir().join("meetings"),
+            output_dir: meetings_dir(),
             transcription: TranscriptionConfig::default(),
             diarization: DiarizationConfig::default(),
             summarization: SummarizationConfig::default(),
@@ -691,7 +758,7 @@ impl Default for DailyNotesConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            path: home_dir().join("meetings").join("daily"),
+            path: meetings_dir().join("daily"),
         }
     }
 }
@@ -1150,6 +1217,49 @@ mod tests {
             path,
             PathBuf::from("/tmp/test-config/artemis-paysages-v2/config.toml")
         );
+    }
+
+    #[test]
+    fn data_root_override_env_var_wins() {
+        let result = data_root_override_from(
+            Some(OsString::from("/custom/data/root")),
+            Some("/should/be/ignored".into()),
+        );
+        assert_eq!(result, Some(PathBuf::from("/custom/data/root")));
+    }
+
+    #[test]
+    fn data_root_override_falls_back_to_bootstrap_file() {
+        let result = data_root_override_from(None, Some("D:\\ArtemisData\n".into()));
+        assert_eq!(result, Some(PathBuf::from("D:\\ArtemisData")));
+    }
+
+    #[test]
+    fn data_root_override_returns_none_when_nothing_set() {
+        let result = data_root_override_from(None, None);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn data_root_override_ignores_empty_env_var() {
+        let result = data_root_override_from(Some(OsString::new()), Some("/valid/path".into()));
+        assert_eq!(result, Some(PathBuf::from("/valid/path")));
+    }
+
+    #[test]
+    fn data_root_override_ignores_comment_only_bootstrap() {
+        let result =
+            data_root_override_from(None, Some("# this is just a comment\n# and another".into()));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn data_root_override_parses_first_non_comment_line() {
+        let result = data_root_override_from(
+            None,
+            Some("# header comment\n/real/path\n# trailing comment\n".into()),
+        );
+        assert_eq!(result, Some(PathBuf::from("/real/path")));
     }
 
     #[test]
