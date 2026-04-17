@@ -1120,13 +1120,14 @@ mod tests {
     #[test]
     fn registry_has_seed_commands() {
         let all = commands();
-        // Slice 2 grows the registry to 20 commands. The two new
-        // entries since slice 1 are OpenLatestMeetingFromToday and
-        // RenameCurrentMeeting; both ship with backing dispatchers.
+        // Artemis fork : 17 commands (upstream 20 - 3 live-transcript
+        // commandes retirées de la palette : StartLiveTranscript,
+        // StopLiveTranscript, ReadLiveTranscript). Le backend reste
+        // disponible via les Tauri commands correspondantes.
         assert_eq!(
             all.len(),
-            20,
-            "slice 2 should have exactly 20 commands with backing dispatchers"
+            17,
+            "Artemis V2 : 17 commandes (upstream 20 moins les 3 live-transcript retirées)"
         );
     }
 
@@ -1281,7 +1282,9 @@ mod tests {
         let ids = kebabs(&visible);
         assert!(ids.contains(&"start-recording"));
         assert!(ids.contains(&"start-dictation"));
-        assert!(ids.contains(&"start-live-transcript"));
+        // Artemis V2 : start-live-transcript retiré de la palette
+        // (backend disponible mais pas exposé dans la command palette).
+        assert!(!ids.contains(&"start-live-transcript"));
         assert!(!ids.contains(&"stop-recording"));
         assert!(!ids.contains(&"stop-dictation"));
         assert!(!ids.contains(&"stop-live-transcript"));
@@ -1301,10 +1304,13 @@ mod tests {
 
     #[test]
     fn live_transcript_exposes_stop_and_read() {
+        // Artemis V2 : les commandes live-transcript sont retirées de
+        // la palette. On vérifie que la palette n'expose RIEN de spécifique
+        // à ce contexte (sinon régression).
         let visible = visible_commands(&live_ctx());
         let ids = kebabs(&visible);
-        assert!(ids.contains(&"stop-live-transcript"));
-        assert!(ids.contains(&"read-live-transcript"));
+        assert!(!ids.contains(&"stop-live-transcript"));
+        assert!(!ids.contains(&"read-live-transcript"));
         assert!(!ids.contains(&"start-live-transcript"));
     }
 

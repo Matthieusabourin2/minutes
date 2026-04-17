@@ -1148,7 +1148,7 @@ mod tests {
 
         assert_eq!(
             path,
-            PathBuf::from("/tmp/test-config/artemis-paysages/config.toml")
+            PathBuf::from("/tmp/test-config/artemis-paysages-v2/config.toml")
         );
     }
 
