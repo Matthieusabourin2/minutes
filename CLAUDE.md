@@ -5,12 +5,13 @@
 > Ce dépôt est le fork Catalia pour Artemis Paysages, pas l'upstream silverstein/minutes.
 > Les règles upstream ci-dessous restent valables sauf override explicite ci-dessous.
 >
-> **Identité produit actuelle du fork (voir `../HANDOFF.md` §12 pour le détail) :**
-> - Nom produit : **Artemis Paysages Enregistreur de Réunion**
-> - Bundle identifier : `com.artemis-paysages.enregistreur`
-> - Binaire : `artemis-paysages-app` (ex-`minutes-app`)
-> - Data dir utilisateur : `~/.artemis-paysages/` (ex-`~/.minutes/`)
-> - Config XDG : `~/.config/artemis-paysages/config.toml` (ex-`~/.config/minutes/`)
+> **Identité produit actuelle du fork (branche `artemis-v2`) :**
+> - Nom produit : **Artemis Paysages Enregistreur V2**
+> - Bundle identifier : `com.artemis-paysages.enregistreur.v2`
+> - Binaire : `artemis-paysages-app` (nom conservé, distinction au niveau bundle)
+> - Data dir utilisateur : `~/.artemis-paysages-v2/` (coexiste avec V1 `~/.artemis-paysages/`)
+> - Config XDG : `~/.config/artemis-paysages-v2/config.toml`
+> - RDV : `~/meetings/` (partagé avec V1 — patrimoine de l'utilisateur)
 > - Palette : Olive `#7B9237` + neutres Artemis (voir `tauri/src/styles/theme-tokens.css`)
 > - Typos : Montserrat (sans-serif) + EB Garamond Italic (serif accents)
 > - Logo : `tauri/src/assets/logo-paysages.png` (fond olive, lotus blanc)

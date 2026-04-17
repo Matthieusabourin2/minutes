@@ -1,0 +1,209 @@
+name: Build Artemis V2 installers
+
+# Build V2 (branche artemis-v2) : installers parallèles à la V1 stable.
+# Bundle ID distinct (com.artemis-paysages.enregistreur.v2) + data dir
+# distinct (~/.artemis-paysages-v2/) = coexistence possible avec V1 sur
+# la même machine. Les RDV (~/meetings/) restent partagés.
+#
+# Nommage des artefacts : suffixe -V2 pour distinguer côté release.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - artemis-v2
+
+env:
+  CARGO_TERM_COLOR: always
+  TAURI_CLI_VERSION: "2.10.1"
+  ARTEMIS_FEATURES: "artemis-default-config"
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # Tests (fmt + clippy + unit) — bloquant pour le build
+  # ────────────────────────────────────────────────────────────────
+  tests:
+    name: Tests (fmt / clippy / unit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-tests-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy (no default features — pas de whisper pour rester rapide)
+        run: cargo clippy --workspace --no-default-features -- -D warnings
+
+      - name: cargo test -p minutes-core --no-default-features --lib
+        run: cargo test -p minutes-core --no-default-features --lib
+
+  # ────────────────────────────────────────────────────────────────
+  # Windows NSIS installer V2 → Minutes-Artemis-V2-Setup.exe
+  # ────────────────────────────────────────────────────────────────
+  windows-artemis-v2:
+    name: Build Windows V2 installer (unsigned)
+    needs: tests
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-artemis-v2-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache ONNX Runtime binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/dfbin
+          key: ${{ runner.os }}-ort-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Tauri CLI
+        shell: bash
+        run: cargo install tauri-cli --version "${TAURI_CLI_VERSION}" --locked
+
+      - name: Generate Artemis default config (inject API key from secret)
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python3 .github/scripts/generate-artemis-config.py
+
+      - name: Disable Tauri updater artifacts (Artemis V2 has no update channel)
+        shell: bash
+        run: |
+          python3 .github/scripts/disable-tauri-updater.py
+
+      - name: Build Tauri NSIS installer with Artemis V2 defaults
+        working-directory: tauri/src-tauri
+        shell: bash
+        env:
+          CARGO_NET_RETRY: "3"
+          GGML_NATIVE: "OFF"
+          GGML_AVX: "ON"
+          GGML_AVX2: "ON"
+          GGML_AVX512: "OFF"
+          GGML_AVX512_VBMI: "OFF"
+          GGML_AVX512_VNNI: "OFF"
+          GGML_AVX512_BF16: "OFF"
+        run: cargo tauri build --features "${ARTEMIS_FEATURES}" --ci --bundles nsis --no-sign
+
+      - name: Rename NSIS installer to Minutes-Artemis-V2-Setup.exe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t installers < <(find target/release/bundle/nsis -maxdepth 1 -type f -name '*.exe' | sort)
+          if [ "${#installers[@]}" -eq 0 ]; then
+            echo "ERROR: no NSIS installer produced under target/release/bundle/nsis" >&2
+            exit 1
+          fi
+          cp -f "${installers[0]}" Minutes-Artemis-V2-Setup.exe
+          ls -la Minutes-Artemis-V2-Setup.exe
+
+      - name: Upload Windows V2 installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minutes-Artemis-V2-Windows
+          path: Minutes-Artemis-V2-Setup.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────────────
+  # macOS DMG V2 (unsigned) → Minutes-Artemis-V2.dmg
+  # ────────────────────────────────────────────────────────────────
+  macos-artemis-v2:
+    name: Build macOS V2 DMG (unsigned)
+    needs: tests
+    runs-on: macos-latest
+
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set CXXFLAGS for whisper.cpp
+        run: echo "CXXFLAGS=-I$(xcrun --show-sdk-path)/usr/include/c++/v1" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-artemis-v2-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "${TAURI_CLI_VERSION}" --locked
+
+      - name: Generate Artemis default config (inject API key from secret)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 .github/scripts/generate-artemis-config.py
+
+      - name: Disable Tauri updater artifacts (Artemis V2 has no update channel)
+        run: python3 .github/scripts/disable-tauri-updater.py
+
+      - name: Build Tauri app + DMG with Artemis V2 defaults (unsigned)
+        working-directory: tauri/src-tauri
+        run: cargo tauri build --features "${ARTEMIS_FEATURES}" --bundles app,dmg
+
+      - name: Inject auto-install script (.command) inside DMG staging folder
+        run: |
+          set -euo pipefail
+          # On ne peut pas facilement re-générer le DMG après build, mais on
+          # peut livrer le script séparément à côté du DMG pour que les users
+          # le lancent en complément. Plus robuste que de bricoler le .dmg.
+          cp packaging/artemis/Install-Artemis-V2.command ./Install-Artemis-V2.command
+          chmod +x Install-Artemis-V2.command
+          ls -la Install-Artemis-V2.command
+
+      - name: Rename DMG to Minutes-Artemis-V2.dmg
+        run: |
+          set -euo pipefail
+          dmg_src=$(find target/release/bundle/dmg -maxdepth 1 -type f -name '*.dmg' | head -1)
+          if [ -z "${dmg_src}" ]; then
+            echo "ERROR: no DMG produced under target/release/bundle/dmg" >&2
+            exit 1
+          fi
+          cp -f "${dmg_src}" Minutes-Artemis-V2.dmg
+          ls -la Minutes-Artemis-V2.dmg
+
+      - name: Upload macOS V2 DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minutes-Artemis-V2-macOS
+          path: |
+            Minutes-Artemis-V2.dmg
+            Install-Artemis-V2.command
+          if-no-files-found: error
+          retention-days: 30

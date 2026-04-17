@@ -247,7 +247,13 @@ pub struct CalendarConfig {
 
 impl Default for CalendarConfig {
     fn default() -> Self {
-        Self { enabled: true }
+        // Artemis V2 : désactivé par défaut. Les commerciaux paysagistes
+        // font 90% de RDV face-à-face (pas de Calendar entry préalable),
+        // et le polling AppleScript toutes les 60s spammait les logs avec
+        // "Calendar got an error: Application isn't running" quand
+        // Calendar.app n'était pas lancé. Peut être réactivé dans le
+        // config.toml par un utilisateur qui utilise Calendar.
+        Self { enabled: false }
     }
 }
 
@@ -568,9 +574,11 @@ fn home_dir() -> PathBuf {
 }
 
 fn minutes_dir() -> PathBuf {
-    // Artemis fork : dossier data utilisateur renommé `~/.artemis-paysages/`
-    // pour cohérence avec l'identité de l'app (ex-`~/.minutes/` upstream).
-    home_dir().join(".artemis-paysages")
+    // Artemis fork V2 : dossier data utilisateur renommé `~/.artemis-paysages-v2/`
+    // pour permettre la coexistence avec V1 (`~/.artemis-paysages/`) sur la
+    // même machine. Les RDV (`~/meetings/`) restent partagés entre les deux
+    // versions pour ne pas dupliquer le patrimoine du commercial.
+    home_dir().join(".artemis-paysages-v2")
 }
 
 fn config_base_dir_from(xdg_config_home: Option<OsString>, home: PathBuf) -> PathBuf {
@@ -587,7 +595,7 @@ fn config_base_dir() -> PathBuf {
 #[cfg(test)]
 fn config_path_from(xdg_config_home: Option<OsString>, home: PathBuf) -> PathBuf {
     config_base_dir_from(xdg_config_home, home)
-        .join("artemis-paysages")
+        .join("artemis-paysages-v2")
         .join("config.toml")
 }
 
@@ -725,6 +733,101 @@ const ARTEMIS_DEFAULT_CONFIG_TOML: &str = include_str!("artemis-default-config.t
 /// Artemis/Catalia: if no user config exists at `path`, seed it with the
 /// embedded default. Runs on CLI and Tauri first-launch. No-op when the
 /// feature is off or the file already exists (user edits are preserved).
+/// Artemis V2 : migration des dossiers data depuis V1 (ou upstream) vers
+/// `~/.artemis-paysages-v2/` au premier lancement. On copie voices.db et
+/// assistant/ (légers, dizaines de Ko), on SYMLINK models/ pour éviter
+/// de dupliquer 1,6 Go de whisper modèles. Idempotent : ne fait rien si
+/// le dossier V2 existe déjà.
+fn maybe_migrate_from_v1() {
+    let v2_dir = minutes_dir();
+    if v2_dir.exists() {
+        return; // migration déjà faite ou nouvelle install
+    }
+
+    let home = home_dir();
+    let legacy_candidates = [
+        home.join(".artemis-paysages"),  // V1 Artemis
+        home.join(".minutes"),           // upstream silverstein/minutes
+    ];
+
+    let legacy_dir = match legacy_candidates.iter().find(|p| p.exists()) {
+        Some(p) => p,
+        None => return, // rien à migrer → fresh install
+    };
+
+    if let Err(e) = std::fs::create_dir_all(&v2_dir) {
+        tracing::warn!(error = %e, path = ?v2_dir, "V2 migration: could not create target dir");
+        return;
+    }
+
+    // 1. Symlink models/ (gros fichiers 100 Mo - 3 Go ; pas de duplication)
+    let legacy_models = legacy_dir.join("models");
+    let v2_models = v2_dir.join("models");
+    if legacy_models.exists() && !v2_models.exists() {
+        #[cfg(unix)]
+        {
+            if let Err(e) = std::os::unix::fs::symlink(&legacy_models, &v2_models) {
+                tracing::warn!(error = %e, "V2 migration: symlink models failed — copying instead");
+                copy_dir_recursive(&legacy_models, &v2_models).ok();
+            } else {
+                tracing::info!(from = ?legacy_models, to = ?v2_models, "V2 migration: symlinked models");
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            // Windows: junction points via std::os::windows::fs::symlink_dir demandent élévation.
+            // Fallback copie.
+            copy_dir_recursive(&legacy_models, &v2_models).ok();
+        }
+    }
+
+    // 2. Copier les petits fichiers (voices.db, graph.db, assistant/, logs/ snapshot)
+    for name in &["voices.db", "graph.db", "assistant", "events.jsonl"] {
+        let src = legacy_dir.join(name);
+        let dst = v2_dir.join(name);
+        if !src.exists() || dst.exists() {
+            continue;
+        }
+        let result = if src.is_dir() {
+            copy_dir_recursive(&src, &dst)
+        } else {
+            std::fs::copy(&src, &dst).map(|_| ())
+        };
+        match result {
+            Ok(()) => tracing::info!(name = %name, "V2 migration: copied"),
+            Err(e) => tracing::warn!(name = %name, error = %e, "V2 migration: copy failed (non-fatal)"),
+        }
+    }
+
+    // 3. Créer un marqueur pour que l'utilisateur sache que la migration a eu lieu
+    let marker = v2_dir.join("MIGRATED-FROM-V1.txt");
+    let _ = std::fs::write(
+        &marker,
+        format!(
+            "Migration Artemis V2 depuis {} effectuée au premier lancement.\n\
+            - models/ : symlink vers le dossier d'origine (partagé avec V1)\n\
+            - voices.db / graph.db / assistant/ : copiés\n\
+            - ~/meetings/ : partagé par défaut (pas touché)\n",
+            legacy_dir.display()
+        ),
+    );
+}
+
+fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let path = entry.path();
+        let target = dst.join(entry.file_name());
+        if path.is_dir() {
+            copy_dir_recursive(&path, &target)?;
+        } else {
+            std::fs::copy(&path, &target)?;
+        }
+    }
+    Ok(())
+}
+
 fn maybe_seed_default_config(path: &Path) {
     #[cfg(feature = "artemis-default-config")]
     {
@@ -750,10 +853,10 @@ fn maybe_seed_default_config(path: &Path) {
 
 impl Config {
     /// Standard config file location.
-    /// Artemis fork : `~/.config/artemis-paysages/config.toml` (ex-`~/.config/minutes/config.toml`).
+    /// Artemis fork : `~/.config/artemis-paysages-v2/config.toml` (ex-`~/.config/minutes/config.toml`).
     pub fn config_path() -> PathBuf {
         config_base_dir()
-            .join("artemis-paysages")
+            .join("artemis-paysages-v2")
             .join("config.toml")
     }
 
@@ -797,6 +900,11 @@ impl Config {
     /// create the config later via `cmd_set_setting` if the user
     /// changes anything.
     pub fn load_with_migrations() -> Self {
+        // Artemis V2 : migrer d'abord les données utilisateur V1 si on
+        // lance V2 pour la première fois sur une machine qui avait V1.
+        // Doit être fait AVANT le seed du config pour que le config pointe
+        // vers les bons chemins (même data_dir).
+        maybe_migrate_from_v1();
         let path = Self::config_path();
         maybe_seed_default_config(&path);
         Self::load_with_migrations_from(&path)
@@ -1022,7 +1130,7 @@ mod tests {
         let home = PathBuf::from("/tmp/test-home");
         let path = config_path_from(None, home.clone());
 
-        assert_eq!(path, home.join(".config/artemis-paysages/config.toml"));
+        assert_eq!(path, home.join(".config/artemis-paysages-v2/config.toml"));
     }
 
     #[test]
@@ -1043,7 +1151,7 @@ mod tests {
         let home = PathBuf::from("/tmp/test-home");
         let path = config_path_from(Some(OsString::new()), home.clone());
 
-        assert_eq!(path, home.join(".config/artemis-paysages/config.toml"));
+        assert_eq!(path, home.join(".config/artemis-paysages-v2/config.toml"));
     }
 
     #[test]

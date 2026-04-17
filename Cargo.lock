@@ -158,7 +158,7 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "artemis-paysages-app"
-version = "0.1.0"
+version = "0.2.0-beta.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -3138,7 +3138,7 @@ dependencies = [
 
 [[package]]
 name = "minutes-cli"
-version = "0.12.1"
+version = "0.2.0-beta.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3164,7 +3164,7 @@ dependencies = [
 
 [[package]]
 name = "minutes-core"
-version = "0.12.1"
+version = "0.2.0-beta.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -3199,7 +3199,7 @@ dependencies = [
 
 [[package]]
 name = "minutes-reader"
-version = "0.12.1"
+version = "0.2.0-beta.1"
 dependencies = [
  "chrono",
  "schemars 1.2.1",

@@ -44,10 +44,8 @@ pub struct AppState {
     pub live_transcript_stop_flag: Arc<AtomicBool>,
     pub live_shortcut_enabled: Arc<AtomicBool>,
     pub live_shortcut: Arc<Mutex<String>>,
-    pub pending_update: Arc<Mutex<Option<PendingUpdate>>>,
-    pub update_install_running: Arc<AtomicBool>,
-    pub update_install_cancel: Arc<AtomicBool>,
-    pub update_install_state: Arc<Mutex<UpdateUiState>>,
+    // Artemis V2 : pending_update / update_install_* retirés —
+    // pas de canal auto-update.
     /// Whether the palette global shortcut is currently registered.
     pub palette_shortcut_enabled: Arc<AtomicBool>,
     /// The shortcut string registered for the palette (e.g. "CmdOrCtrl+Shift+K").
@@ -298,28 +296,10 @@ pub fn cmd_get_meeting_prompt(
     }
 }
 
-/// Surface a deferred update notification if one is pending and no session is active.
-/// Call this after recording/live/dictation stops.
-pub fn surface_deferred_update(app: &tauri::AppHandle) {
-    let state = match app.try_state::<AppState>() {
-        Some(s) => s,
-        None => return,
-    };
-    if state.recording.load(Ordering::Relaxed)
-        || state.starting.load(Ordering::Relaxed)
-        || state.processing.load(Ordering::Relaxed)
-        || state.live_transcript_active.load(Ordering::Relaxed)
-        || state.dictation_active.load(Ordering::Relaxed)
-    {
-        return;
-    }
-    let pending = match state.pending_update.lock() {
-        Ok(mut guard) => guard.take(),
-        Err(_) => return,
-    };
-    if let Some(update) = pending {
-        emit_update_ready(app, &update);
-    }
+// Artemis V2 : surface_deferred_update retiré (pas de canal auto-update).
+#[allow(dead_code)]
+pub fn surface_deferred_update(_app: &tauri::AppHandle) {
+    // no-op
 }
 
 fn emit_update_ready(app: &tauri::AppHandle, update: &PendingUpdate) {
@@ -333,19 +313,14 @@ fn emit_update_ready(app: &tauri::AppHandle, update: &PendingUpdate) {
     );
 }
 
+#[allow(dead_code)]
 fn set_update_ui_state(
     app: &tauri::AppHandle,
-    state: &AppState,
+    _state: &AppState,
     next: UpdateUiState,
 ) -> Result<(), String> {
-    {
-        let mut guard = state
-            .update_install_state
-            .lock()
-            .map_err(|_| "update state lock poisoned".to_string())?;
-        *guard = next.clone();
-    }
-
+    // Artemis V2 : state.update_install_state retiré. On garde l'émission
+    // d'event pour compat si du code legacy y écoute encore.
     let _ = app.emit(
         "update://phase",
         serde_json::json!({
@@ -1987,34 +1962,40 @@ fn set_call_detection_sentinel(config: &mut Config, sentinel: &str, enabled: boo
 }
 
 fn stage_label(stage: minutes_core::pipeline::PipelineStage, mode: CaptureMode) -> &'static str {
+    // Artemis V2 : labels traduits + plus descriptifs (l'user patiente
+    // 30-60s devant ce texte, autant qu'il sache ce qui se passe).
     match (stage, mode) {
         (minutes_core::pipeline::PipelineStage::Transcribing, CaptureMode::Meeting) => {
-            "Transcribing meeting"
+            "Transcription du rendez-vous en cours…"
         }
         (minutes_core::pipeline::PipelineStage::Transcribing, CaptureMode::QuickThought) => {
-            "Transcribing quick thought"
+            "Transcription de la note en cours…"
         }
-        (minutes_core::pipeline::PipelineStage::Diarizing, _) => "Separating speakers",
+        (minutes_core::pipeline::PipelineStage::Diarizing, _) => {
+            "Identification des intervenants…"
+        }
         (minutes_core::pipeline::PipelineStage::Summarizing, CaptureMode::Meeting) => {
-            "Generating meeting summary"
+            "Analyse ProcessCom et génération du compte-rendu…"
         }
         (minutes_core::pipeline::PipelineStage::Summarizing, CaptureMode::QuickThought) => {
-            "Generating memo summary"
+            "Synthèse de la note…"
         }
-        (minutes_core::pipeline::PipelineStage::Saving, CaptureMode::Meeting) => "Saving meeting",
+        (minutes_core::pipeline::PipelineStage::Saving, CaptureMode::Meeting) => {
+            "Sauvegarde du compte-rendu…"
+        }
         (minutes_core::pipeline::PipelineStage::Saving, CaptureMode::QuickThought) => {
-            "Saving quick thought"
+            "Sauvegarde de la note…"
         }
         (minutes_core::pipeline::PipelineStage::Transcribing, CaptureMode::Dictation) => {
-            "Transcribing dictation"
+            "Transcription de la dictée…"
         }
         (minutes_core::pipeline::PipelineStage::Summarizing, CaptureMode::Dictation) => {
-            "Generating dictation summary"
+            "Synthèse de la dictée…"
         }
         (minutes_core::pipeline::PipelineStage::Saving, CaptureMode::Dictation) => {
-            "Saving dictation"
+            "Sauvegarde de la dictée…"
         }
-        (_, CaptureMode::LiveTranscript) => "Processing live transcript",
+        (_, CaptureMode::LiveTranscript) => "Traitement de la transcription en direct…",
     }
 }
 
@@ -4023,12 +4004,9 @@ pub fn cmd_status(state: tauri::State<AppState>) -> serde_json::Value {
         .into_iter()
         .map(processing_job_view)
         .collect();
-    let update_state = state
-        .update_install_state
-        .lock()
-        .ok()
-        .map(|guard| guard.clone())
-        .unwrap_or_default();
+    // Artemis V2 : update_state retiré (pas de canal auto-update).
+    let update_state = UpdateUiState::default();
+    let _ = state; // silence si plus d'usage
     let config = Config::load();
     let has_model = if config.transcription.engine == "parakeet" {
         let parakeet = parakeet_status_view(&config);
@@ -5338,37 +5316,59 @@ pub async fn cmd_download_model(
     tauri::async_runtime::spawn_blocking(move || {
         validate_download_model_name(&model)?;
 
-        let config = Config::load();
+        let mut config = Config::load();
         let model_dir = &config.transcription.model_path;
         let model_file = model_dir.join(format!("ggml-{}.bin", model));
 
-        if model_file.exists() {
-            mark_activation_model_ready(&activation_progress, &model_file);
-            return Ok(format!("Model '{}' already downloaded", model));
+        if !model_file.exists() {
+            std::fs::create_dir_all(model_dir).map_err(|e| e.to_string())?;
+
+            let url = format!(
+                "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin",
+                model
+            );
+
+            eprintln!("[minutes] Downloading model: {} from {}", model, url);
+
+            let status = std::process::Command::new("curl")
+                .args([
+                    "-L",
+                    "-o",
+                    &model_file.to_string_lossy(),
+                    &url,
+                    "--progress-bar",
+                ])
+                .status()
+                .map_err(|e| format!("curl failed: {}", e))?;
+
+            if !status.success() {
+                return Err("Download failed".into());
+            }
         }
 
-        std::fs::create_dir_all(model_dir).map_err(|e| e.to_string())?;
+        // Artemis V2 : synchroniser le config avec le modèle qu'on vient
+        // de télécharger. Sans ça, l'onboarding download "large-v3-turbo"
+        // mais config.transcription.model reste à "small" (valeur template)
+        // → transcription charge le mauvais fichier et échoue.
+        let needs_persist = config.transcription.model != model
+            || config.dictation.model != model
+            || config.live_transcript.model != model;
 
-        let url = format!(
-            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin",
-            model
-        );
-
-        eprintln!("[minutes] Downloading model: {} from {}", model, url);
-
-        let status = std::process::Command::new("curl")
-            .args([
-                "-L",
-                "-o",
-                &model_file.to_string_lossy(),
-                &url,
-                "--progress-bar",
-            ])
-            .status()
-            .map_err(|e| format!("curl failed: {}", e))?;
-
-        if !status.success() {
-            return Err("Download failed".into());
+        if needs_persist {
+            config.transcription.model = model.clone();
+            // Sidecars (dictation + live_transcript) utilisent le même
+            // modèle par cohérence — sinon le DIRECT retomberait sur
+            // "small" et replongerait dans le bug "ggml-base.bin not found".
+            config.dictation.model = model.clone();
+            config.live_transcript.model = model.clone();
+            if let Err(e) = config.save() {
+                eprintln!("[minutes] WARN: could not persist model choice to config: {}", e);
+                // Non-fatal : le download a réussi, juste le config ne sera
+                // pas persisté. L'app utilisera le nouveau modèle dans cette
+                // session mais retomberait sur l'ancien au prochain launch.
+            } else {
+                eprintln!("[minutes] config.transcription.model + dictation.model + live_transcript.model → '{}'", model);
+            }
         }
 
         let size = std::fs::metadata(&model_file)
@@ -6121,14 +6121,14 @@ mod tests {
                 minutes_core::pipeline::PipelineStage::Transcribing,
                 CaptureMode::QuickThought
             ),
-            "Transcribing quick thought"
+            "Transcription de la note en cours…"
         );
         assert_eq!(
             stage_label(
                 minutes_core::pipeline::PipelineStage::Saving,
                 CaptureMode::Meeting
             ),
-            "Saving meeting"
+            "Sauvegarde du compte-rendu…"
         );
     }
 
@@ -8506,232 +8506,6 @@ pub fn cmd_probe_shortcut(keycode: i64) -> serde_json::Value {
     })
 }
 
-#[tauri::command]
-pub async fn cmd_install_update(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    use tauri_plugin_updater::UpdaterExt;
-
-    let state = app.state::<AppState>();
-    if state.recording.load(Ordering::Relaxed) {
-        return Err("Cannot update while recording. Stop the recording first.".into());
-    }
-    if state.starting.load(Ordering::Relaxed) {
-        return Err("Recording is starting. Wait a moment and try again.".into());
-    }
-    if state.processing.load(Ordering::Relaxed) {
-        return Err("Processing a recording. Wait until it finishes.".into());
-    }
-    if state.live_transcript_active.load(Ordering::Relaxed) {
-        return Err("Cannot update during live transcription. Stop it first.".into());
-    }
-    if state.dictation_active.load(Ordering::Relaxed) {
-        return Err("Cannot update during dictation. Stop it first.".into());
-    }
-
-    if state
-        .update_install_running
-        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .is_err()
-    {
-        return Err("An update is already in progress.".into());
-    }
-    state.update_install_cancel.store(false, Ordering::SeqCst);
-
-    let initial_pending = state
-        .pending_update
-        .lock()
-        .ok()
-        .and_then(|guard| guard.clone());
-
-    let initial_ui = initial_pending
-        .as_ref()
-        .map(|pending| UpdateUiState::available(pending.version.clone(), pending.download_bytes))
-        .unwrap_or_default()
-        .checking();
-    let _ = set_update_ui_state(&app, &state, initial_ui);
-
-    let app_handle = app.clone();
-    tauri::async_runtime::spawn(async move {
-        let state = app_handle.state::<AppState>();
-        let result = async {
-            let updater = app_handle
-                .updater()
-                .map_err(|e| UpdateInstallError::Message(e.to_string()))?;
-            let update = updater
-                .check()
-                .await
-                .map_err(|e| UpdateInstallError::Message(e.to_string()))?
-                .ok_or_else(|| UpdateInstallError::Message("No update available.".into()))?;
-
-            let version = update.version.clone();
-            let pending = PendingUpdate {
-                version: version.clone(),
-                body: update.body.clone().unwrap_or_default(),
-                download_bytes: fetch_update_download_size(&update.download_url).await,
-            };
-            if let Ok(mut guard) = state.pending_update.lock() {
-                *guard = Some(pending.clone());
-            }
-            emit_update_ready(&app_handle, &pending);
-
-            let downloading = UpdateUiState::available(version.clone(), pending.download_bytes)
-                .downloading(pending.download_bytes);
-            let _ = set_update_ui_state(&app_handle, &state, downloading.clone());
-
-            let bytes = download_update_bytes(
-                &update,
-                &state.update_install_cancel,
-                |downloaded_bytes, total_bytes, bytes_per_sec, eta_seconds| {
-                    let progress_state =
-                        UpdateUiState::available(version.clone(), pending.download_bytes)
-                            .with_progress(
-                                downloaded_bytes,
-                                total_bytes.or(pending.download_bytes),
-                                bytes_per_sec,
-                                eta_seconds,
-                            );
-                    let _ = set_update_ui_state(&app_handle, &state, progress_state);
-                },
-            )
-            .await?;
-
-            let total_bytes = pending.download_bytes.or(Some(bytes.len() as u64));
-            let _ = set_update_ui_state(
-                &app_handle,
-                &state,
-                UpdateUiState::available(version.clone(), total_bytes)
-                    .verifying(bytes.len() as u64, total_bytes),
-            );
-            let pubkey = updater_pubkey().map_err(UpdateInstallError::Message)?;
-            verify_update_signature(&bytes, &update.signature, &pubkey)
-                .map_err(UpdateInstallError::Message)?;
-
-            let _ = set_update_ui_state(
-                &app_handle,
-                &state,
-                UpdateUiState::available(version.clone(), total_bytes)
-                    .installing(bytes.len() as u64, total_bytes),
-            );
-            update.install(&bytes).map_err(|e| {
-                UpdateInstallError::Message(format!("Update install failed: {}", e))
-            })?;
-
-            if let Ok(mut pending) = state.pending_update.lock() {
-                *pending = None;
-            }
-
-            let _ = set_update_ui_state(
-                &app_handle,
-                &state,
-                UpdateUiState::available(version.clone(), total_bytes)
-                    .ready(bytes.len() as u64, total_bytes),
-            );
-            eprintln!("[updater] v{} installed, restarting", version);
-            std::thread::sleep(Duration::from_millis(700));
-            app_handle.restart();
-            #[allow(unreachable_code)]
-            Ok::<(), UpdateInstallError>(())
-        }
-        .await;
-
-        if let Err(error) = result {
-            match error {
-                UpdateInstallError::Cancelled => {
-                    if let Ok(mut guard) = state.update_install_state.lock() {
-                        *guard = UpdateUiState::default();
-                    }
-                    if let Ok(guard) = state.pending_update.lock() {
-                        if let Some(pending) = guard.as_ref() {
-                            emit_update_ready(&app_handle, pending);
-                        }
-                    }
-                }
-                UpdateInstallError::Message(message) => {
-                    let current = state
-                        .update_install_state
-                        .lock()
-                        .ok()
-                        .map(|guard| guard.clone())
-                        .unwrap_or_default();
-                    let _ = set_update_ui_state(&app_handle, &state, current.failed(message, true));
-                }
-            }
-        }
-
-        state.update_install_cancel.store(false, Ordering::SeqCst);
-        state.update_install_running.store(false, Ordering::SeqCst);
-    });
-
-    Ok(serde_json::json!({"started": true}))
-}
-
-#[tauri::command]
-pub fn cmd_cancel_update_install(app: tauri::AppHandle) -> Result<(), String> {
-    let state = app.state::<AppState>();
-    if !state.update_install_running.load(Ordering::SeqCst) {
-        return Err("No update is currently in progress.".into());
-    }
-    let can_cancel = state
-        .update_install_state
-        .lock()
-        .map_err(|_| "update state lock poisoned".to_string())?
-        .can_cancel;
-    if !can_cancel {
-        return Err("Update can no longer be canceled.".into());
-    }
-    state.update_install_cancel.store(true, Ordering::SeqCst);
-    Ok(())
-}
-
-#[tauri::command]
-pub fn cmd_debug_simulate_update(app: tauri::AppHandle, scenario: String) -> Result<(), String> {
-    if !app.config().identifier.contains(".dev") {
-        return Err("Debug updater simulation is only available in Minutes Dev.app.".into());
-    }
-    debug_emit_update_state(&app, &scenario)
-}
-
-pub fn debug_emit_update_state(app: &tauri::AppHandle, scenario: &str) -> Result<(), String> {
-    let state = app.state::<AppState>();
-    let version = state
-        .pending_update
-        .lock()
-        .ok()
-        .and_then(|guard| guard.as_ref().map(|pending| pending.version.clone()))
-        .unwrap_or_else(|| "0.0.0-dev".to_string());
-    let available_version = version.clone();
-    let total = Some(48 * 1024 * 1024_u64);
-    let next = match scenario {
-        "available" => UpdateUiState::available(available_version.clone(), total),
-        "checking" => UpdateUiState::available(version, total).checking(),
-        "downloading" => UpdateUiState::available(version, total).with_progress(
-            12 * 1024 * 1024,
-            total,
-            Some(1.4 * 1024.0 * 1024.0),
-            Some(26),
-        ),
-        "verifying" => UpdateUiState::available(version, total).verifying(48 * 1024 * 1024, total),
-        "installing" => {
-            UpdateUiState::available(version, total).installing(48 * 1024 * 1024, total)
-        }
-        "ready" => UpdateUiState::available(version, total).ready(48 * 1024 * 1024, total),
-        "error" => UpdateUiState::available(version, total).failed(
-            "Update download stalled. Check your connection and try again.",
-            true,
-        ),
-        _ => return Err("Unknown debug scenario.".into()),
-    };
-    if scenario == "available" {
-        emit_update_ready(
-            app,
-            &PendingUpdate {
-                version: available_version,
-                body: String::new(),
-                download_bytes: total,
-            },
-        );
-    }
-    set_update_ui_state(app, &state, next)
-}
 
 // ─────────────────────────────────────────────────────────────────────
 // What's New (post-update release notes)

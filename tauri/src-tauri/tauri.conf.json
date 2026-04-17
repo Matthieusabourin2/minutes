@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/tauri/dev/crates/tauri-cli/schema.json",
-  "productName": "Artemis Paysages Enregistreur",
-  "mainBinaryName": "Artemis Paysages Enregistreur",
-  "identifier": "com.artemis-paysages.enregistreur",
-  "version": "0.12.1",
+  "productName": "Artemis Paysages Enregistreur V2",
+  "mainBinaryName": "Artemis Paysages Enregistreur V2",
+  "identifier": "com.artemis-paysages.enregistreur.v2",
+  "version": "0.2.0-beta.1",
   "build": {
     "frontendDist": "../src"
   },

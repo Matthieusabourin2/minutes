@@ -815,12 +815,16 @@
       mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
     }
 
+    /* Artemis V2 : bars plus larges, contraste renforcé pour bien voir
+       l'animation rouge sur fond dark mode (où le red-tint-soft ambiant
+       noyait la visibilité). */
     .audio-viz .bar {
-      width: 2px;
+      width: 3px;
       border-radius: 999px;
       background: var(--red);
-      opacity: 0.72;
-      min-height: 2px;
+      opacity: 0.85;
+      min-height: 4px;
+      box-shadow: 0 0 4px var(--red);
       transition: height 0.1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
     }
 
@@ -831,6 +835,94 @@
 
     .recording-actions .btn {
       flex: 1;
+    }
+
+    /* Artemis V2 : input note inline pendant l'enregistrement, toujours
+       visible pour la découvrabilité de la feature. */
+    .recording-note-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0 12px;
+      padding: 6px 10px;
+      border: 1px solid var(--border-mid, rgba(0,0,0,0.12));
+      border-radius: 10px;
+      background: var(--bg-elevated);
+    }
+    .recording-note-inline-icon {
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .recording-note-inline input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      padding: 4px 0;
+      min-width: 0;
+    }
+    .recording-note-inline input::placeholder {
+      color: var(--text-tertiary);
+      font-style: italic;
+    }
+    .recording-note-inline .btn {
+      flex-shrink: 0;
+    }
+    .recording-note-inline.note-saved-flash {
+      border-color: var(--green, #2E8A66);
+      background: var(--green-tint-soft, rgba(46,138,102,0.07));
+      transition: border-color 0.3s ease, background 0.3s ease;
+    }
+
+    /* Artemis V2 : dialog de confirmation stylisé (remplace confirm() natif) */
+    .artemis-confirm-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: artemis-confirm-fade 0.12s ease-out;
+    }
+    @keyframes artemis-confirm-fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .artemis-confirm-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px 18px;
+      width: min(420px, calc(100vw - 40px));
+      box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+      color: var(--text);
+      animation: artemis-confirm-slide 0.16s ease-out;
+    }
+    @keyframes artemis-confirm-slide {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .artemis-confirm-title {
+      font-family: var(--font-display, inherit);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .artemis-confirm-message {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    .artemis-confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
     }
 
     .recording-source-health {
@@ -3680,6 +3772,48 @@
       color: var(--text-primary, #1b1b1b);
       border-bottom-left-radius: 4px;
     }
+    /* Artemis V2 : styles markdown dans les bulles assistant. Headings
+       plus petits que h1/h2 natifs pour tenir dans la bulle, listes
+       compactes, code inline léger. */
+    .chat-bubble.assistant h1,
+    .chat-bubble.assistant h2,
+    .chat-bubble.assistant h3 {
+      margin: 8px 0 4px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .chat-bubble.assistant h1 { font-size: 16px; }
+    .chat-bubble.assistant h2 { font-size: 14.5px; }
+    .chat-bubble.assistant h3 { font-size: 13.5px; }
+    .chat-bubble.assistant h1:first-child,
+    .chat-bubble.assistant h2:first-child,
+    .chat-bubble.assistant h3:first-child,
+    .chat-bubble.assistant p:first-child,
+    .chat-bubble.assistant ul:first-child,
+    .chat-bubble.assistant ol:first-child {
+      margin-top: 0;
+    }
+    .chat-bubble.assistant p {
+      margin: 4px 0;
+    }
+    .chat-bubble.assistant ul,
+    .chat-bubble.assistant ol {
+      margin: 4px 0;
+      padding-left: 20px;
+    }
+    .chat-bubble.assistant li {
+      margin: 2px 0;
+    }
+    .chat-bubble.assistant code {
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 12px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--bg-hover, rgba(0,0,0,0.06));
+    }
+    .chat-bubble.assistant strong {
+      font-weight: 600;
+    }
     .chat-bubble.error {
       align-self: stretch;
       background: #fbe9e7;
@@ -3868,8 +4002,24 @@
         <span class="call-health-chip" id="recording-health-audio">Audio d'appel en attente</span>
       </div>
       <div class="audio-viz" id="audio-viz"></div>
+
+      <!-- Artemis V2 : input de note inline TOUJOURS visible pendant
+           l'enregistrement, pour que le commercial découvre la feature
+           sans avoir à cliquer un bouton caché. Les notes sont
+           timestampées (mm:ss depuis le début) et injectées dans le CR
+           final. Raccourci Cmd+Shift+N pour focus direct sans souris. -->
+      <div class="recording-note-inline">
+        <span class="recording-note-inline-icon" aria-hidden="true">📝</span>
+        <input
+          type="text"
+          id="recording-note-input"
+          placeholder="Prends une note timestampée… (Cmd+Shift+N)"
+          aria-label="Ajouter une note timestampée à l'enregistrement en cours"
+        />
+        <button class="btn btn-secondary btn-sm" id="btn-recording-note-save">Ajouter</button>
+      </div>
+
       <div class="recording-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-note-inline" title="Ajouter une note">Ajouter une note</button>
         <button class="btn btn-danger btn-sm" id="btn-stop">Arrêter l'enregistrement</button>
       </div>
     </div>
@@ -4032,6 +4182,7 @@
           <button class="btn md-viewer-mode-btn active" id="md-viewer-preview-btn">Final</button>
           <button class="btn md-viewer-mode-btn" id="md-viewer-source-btn">Brouillon</button>
           <span class="md-viewer-toolbar-sep"></span>
+          <button class="btn" id="md-viewer-email-btn" title="Envoyer par e-mail (ouvre Mail/Outlook)">✉️ E-mail</button>
           <button class="btn" id="md-viewer-promote-btn" hidden>Copier pour éditer</button>
           <button class="btn" id="md-viewer-save-btn" disabled>Sauvegarder</button>
           <button class="btn" id="md-viewer-review-btn" disabled>Revoir</button>
@@ -5259,7 +5410,9 @@
 
       for (let i = 0; i < NUM_BARS; i++) {
         bars[i].style.height = barHeights[i] + 'px';
-        bars[i].style.opacity = barHeights[i] > 4 ? '0.7' : '0.3';
+        // Artemis V2 : on remonte le floor d'opacity pour que les barres
+        // restent visibles même en silence (au lieu de disparaître à 0.3).
+        bars[i].style.opacity = barHeights[i] > 6 ? '0.95' : '0.6';
       }
     }
 
@@ -5644,7 +5797,7 @@
           isLiveTranscript = false;
           callBanner.classList.remove('active');
           setFooterCaptureMode(false);
-          processingStage.textContent = status.processingStage || 'Preparing transcript...';
+          processingStage.textContent = status.processingStage || 'Préparation de la transcription…';
 
           // Start elapsed timer when processing begins
           if (!wasProcessing) {
@@ -6283,16 +6436,25 @@
       if (e.target === renameOverlay) closeRenameModal();
     });
 
-    // ── Delete meeting ──
+    // ── Delete meeting (Artemis V2 : double confirmation explicite
+    //    côté JS pour éviter les suppressions accidentelles) ──
     document.getElementById('btn-delete-meeting').addEventListener('click', async () => {
       const pathToDelete = currentMeetingPath;
       if (!pathToDelete) return;
+      const title = (currentMeetingDetail && currentMeetingDetail.title) || 'ce rendez-vous';
+      const confirmed = await confirmViaDialog({
+        title: 'Supprimer définitivement ?',
+        message: `Le rendez-vous « ${title} » va être supprimé définitivement (fichier markdown + audio + brouillons associés). Cette action est irréversible.`,
+        confirmLabel: 'Supprimer définitivement',
+        confirmKind: 'danger',
+      });
+      if (!confirmed) return;
       try {
-        // Confirmation dialog is shown natively by the Rust command
+        // On passe force:true puisqu'on a déjà confirmé côté UI.
         const result = await invoke('cmd_delete_meeting', {
           path: pathToDelete,
           withAudio: true,
-          force: false,
+          force: true,
         });
         if (result === 'Cancelled') return;
         console.log(result);
@@ -6302,6 +6464,49 @@
         console.error('Delete:', e);
       }
     });
+
+    // ── Artemis V2 : dialog de confirmation stylisé (remplace
+    //    window.confirm() qui affiche une alert native moche). ──
+    function confirmViaDialog({ title, message, confirmLabel = 'Confirmer', cancelLabel = 'Annuler', confirmKind = 'primary' }) {
+      return new Promise((resolve) => {
+        const backdrop = document.createElement('div');
+        backdrop.className = 'artemis-confirm-backdrop';
+        backdrop.innerHTML = `
+          <div class="artemis-confirm-card" role="dialog" aria-modal="true" aria-labelledby="artemis-confirm-title">
+            <div class="artemis-confirm-title" id="artemis-confirm-title"></div>
+            <div class="artemis-confirm-message"></div>
+            <div class="artemis-confirm-actions">
+              <button class="btn btn-secondary btn-sm" data-role="cancel"></button>
+              <button class="btn btn-sm" data-role="confirm"></button>
+            </div>
+          </div>
+        `;
+        backdrop.querySelector('.artemis-confirm-title').textContent = title;
+        backdrop.querySelector('.artemis-confirm-message').textContent = message;
+        const confirmBtn = backdrop.querySelector('[data-role="confirm"]');
+        const cancelBtn = backdrop.querySelector('[data-role="cancel"]');
+        confirmBtn.textContent = confirmLabel;
+        cancelBtn.textContent = cancelLabel;
+        confirmBtn.classList.add(confirmKind === 'danger' ? 'btn-danger' : 'btn-primary');
+        document.body.appendChild(backdrop);
+        const finish = (result) => {
+          document.removeEventListener('keydown', onKey, true);
+          backdrop.remove();
+          resolve(result);
+        };
+        const onKey = (e) => {
+          if (e.key === 'Escape') { e.stopPropagation(); finish(false); }
+          if (e.key === 'Enter') { e.stopPropagation(); finish(true); }
+        };
+        document.addEventListener('keydown', onKey, true);
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop) finish(false);
+        });
+        confirmBtn.addEventListener('click', () => finish(true));
+        cancelBtn.addEventListener('click', () => finish(false));
+        setTimeout(() => confirmBtn.focus(), 50);
+      });
+    }
 
     document.getElementById('btn-stop').addEventListener('click', async () => {
       try {
@@ -6464,31 +6669,52 @@
       if (e.target === recoveryOverlay) closeRecovery();
     });
 
-    // ── Inline note ──
-    document.getElementById('btn-note-inline').addEventListener('click', () => {
-      quickNote.classList.toggle('active');
-      if (quickNote.classList.contains('active')) {
-        noteInput.focus();
-      }
-    });
+    // ── Inline note (Artemis V2 : input toujours visible dans la
+    // recording-bar pendant l'enregistrement, plus de toggle-panel) ──
+    const recordingNoteInput = document.getElementById('recording-note-input');
+    const recordingNoteSaveBtn = document.getElementById('btn-recording-note-save');
 
-    async function saveInlineNote() {
-      const text = noteInput.value.trim();
+    async function saveRecordingNote() {
+      const text = recordingNoteInput.value.trim();
       if (!text) return;
       try {
         await invoke('cmd_add_note', { text });
-        noteInput.value = '';
-        quickNote.classList.remove('active');
+        recordingNoteInput.value = '';
+        // Petit feedback visuel : la bordure flash vert brièvement.
+        recordingNoteInput.parentElement?.classList.add('note-saved-flash');
+        setTimeout(() => {
+          recordingNoteInput.parentElement?.classList.remove('note-saved-flash');
+        }, 700);
       } catch (e) {
         console.error('Note:', e);
+        // Erreur typique : "No recording in progress" quand on essaie de
+        // prendre une note hors enregistrement. Silencieux côté UI.
       }
     }
 
-    document.getElementById('btn-note-save').addEventListener('click', saveInlineNote);
-    noteInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); saveInlineNote(); }
-      if (e.key === 'Escape') { quickNote.classList.remove('active'); }
+    recordingNoteSaveBtn.addEventListener('click', saveRecordingNote);
+    recordingNoteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); saveRecordingNote(); }
     });
+
+    // Raccourci Cmd+Shift+N pendant un enregistrement → focus direct
+    // sur l'input de note sans avoir à cliquer.
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'n' || e.key === 'N')) {
+        if (isRecording && recordingNoteInput && !recordingNoteInput.disabled) {
+          e.preventDefault();
+          recordingNoteInput.focus();
+        }
+      }
+    });
+
+    // Legacy : anciens handlers quick-note + btn-note-inline (code mort
+    // pour compat avec d'éventuelles références JS upstream, les nœuds
+    // HTML existent encore plus bas en legacy). No-op.
+    async function saveInlineNote() {
+      // Legacy entrypoint — délègue à la nouvelle implem.
+      return saveRecordingNote();
+    }
 
     // ── Meeting list ──
     function groupByDate(meetings) {
@@ -7472,6 +7698,95 @@
 
     // ⌘, keyboard shortcut
     document.addEventListener('keydown', (e) => { if (e.metaKey && e.key === ',') { e.preventDefault(); openSettings(); } });
+
+    // ── Artemis V2 : raccourcis clavier globaux ─────────────────
+    // ⌘R           → Démarrer/arrêter l'enregistrement
+    // ⌘K           → Focus recherche
+    // ⌘W / Esc     → Fermer popup/viewer ouvert
+    // ⌘⇧A          → Toggle panneau assistant
+    // ⌘⌥[ / ⌘⌥]    → Nav arrière/avant dans la popup détail (back stack)
+    // (⌘,          → Réglages, déjà défini plus haut)
+    // (⌘⇧N         → Focus note inline pendant enregistrement, déjà défini)
+    document.addEventListener('keydown', (e) => {
+      // On ignore les raccourcis si un input/textarea/contentEditable est focus,
+      // sauf Esc qui reste disponible partout.
+      const active = document.activeElement;
+      const isTyping = active && (
+        active.tagName === 'INPUT' ||
+        active.tagName === 'TEXTAREA' ||
+        active.isContentEditable
+      );
+      const cmd = e.metaKey || e.ctrlKey;
+
+      // Esc : ferme popup détail ou md-viewer en priorité.
+      if (e.key === 'Escape') {
+        const detailActive = detailOverlay.classList.contains('active');
+        const viewerActive = mdViewer.classList.contains('active');
+        if (detailActive) {
+          e.preventDefault();
+          closeDetailView();
+          return;
+        }
+        if (viewerActive) {
+          e.preventDefault();
+          hideMdViewer();
+          return;
+        }
+      }
+
+      // ⌘W : fermer popup ou viewer (idem Esc mais plus macOS-natif)
+      if (cmd && !e.shiftKey && !e.altKey && (e.key === 'w' || e.key === 'W')) {
+        const detailActive = detailOverlay.classList.contains('active');
+        const viewerActive = mdViewer.classList.contains('active');
+        if (detailActive) { e.preventDefault(); closeDetailView(); return; }
+        if (viewerActive) { e.preventDefault(); hideMdViewer(); return; }
+      }
+
+      // ⌘R : toggle recording (ne marche pas si on tape dans un input)
+      if (cmd && !e.shiftKey && !e.altKey && (e.key === 'r' || e.key === 'R') && !isTyping) {
+        e.preventDefault();
+        const recordBtn = document.getElementById('btn-record');
+        const stopBtn = document.getElementById('btn-stop');
+        if (isRecording && stopBtn && !stopBtn.disabled) {
+          stopBtn.click();
+        } else if (!isRecording && recordBtn && !recordBtn.disabled) {
+          recordBtn.click();
+        }
+        return;
+      }
+
+      // ⌘K : focus recherche
+      if (cmd && !e.shiftKey && !e.altKey && (e.key === 'k' || e.key === 'K')) {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+          searchInput.select();
+        }
+        return;
+      }
+
+      // ⌘⇧A : toggle panneau assistant
+      if (cmd && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        const recallPanelEl = document.getElementById('recall-panel');
+        if (recallPanelEl && recallPanelEl.classList.contains('expanded')) {
+          collapseRecallPanel && collapseRecallPanel();
+        } else {
+          openRecall('assistant');
+        }
+        return;
+      }
+
+      // ⌘⌥[ : nav arrière popup détail
+      if (cmd && e.altKey && (e.key === '[' || e.code === 'BracketLeft')) {
+        if (detailOverlay.classList.contains('active') && meetingNavStack.length > 0) {
+          e.preventDefault();
+          navigateBackInDetail();
+          return;
+        }
+      }
+    });
 
     async function loadSettings() {
       try {
@@ -10267,6 +10582,41 @@
     mdViewerPreviewBtn.addEventListener('click', () => setMdViewerMode('preview'));
     mdViewerSourceBtn.addEventListener('click', () => setMdViewerMode('source'));
     mdViewerPromoteBtn.addEventListener('click', promoteOpenArtifact);
+
+    // Artemis V2 : envoyer le brouillon courant par e-mail via mailto:
+    // Ouvre le client mail par défaut (Mail.app / Outlook / Thunderbird)
+    // avec objet + corps pré-remplis depuis le contenu du brouillon.
+    document.getElementById('md-viewer-email-btn').addEventListener('click', () => {
+      if (!openArtifactContent) return;
+      // Essayer d'extraire un sujet depuis le frontmatter `titre:` ou
+      // le 1er `# Heading` sinon fallback sur le nom de fichier.
+      let subject = '';
+      const mTitre = openArtifactContent.match(/^titre:\s*(.+)$/m);
+      if (mTitre) subject = mTitre[1].trim();
+      if (!subject) {
+        const mH1 = openArtifactContent.match(/^#\s+(.+)$/m);
+        if (mH1) subject = mH1[1].trim();
+      }
+      if (!subject) {
+        subject = (openArtifactPath || '').split('/').pop() || 'Compte-rendu';
+        subject = subject.replace(/\.md$/i, '').replace(/^[0-9-]+-/, '').replace(/-/g, ' ');
+      }
+      // Retirer le bloc frontmatter YAML du corps pour l'email.
+      let body = openArtifactContent.replace(/^---\n[\s\S]*?\n---\n+/, '');
+      // mailto: a une limite de longueur pratique (~2000 chars).
+      // On prévient l'utilisateur si dépassé.
+      const mailtoUrl = 'mailto:?subject=' + encodeURIComponent(subject) +
+                       '&body=' + encodeURIComponent(body);
+      if (mailtoUrl.length > 7000) {
+        // On tronque plutôt que de casser le mailto, avec un footer d'info
+        body = body.substring(0, 5500) + '\n\n[… brouillon tronqué pour tenir dans le mail, voir le fichier complet dans Artemis]';
+        const truncUrl = 'mailto:?subject=' + encodeURIComponent(subject) +
+                        '&body=' + encodeURIComponent(body);
+        window.open(truncUrl, '_self');
+      } else {
+        window.open(mailtoUrl, '_self');
+      }
+    });
     mdViewerSaveBtn.addEventListener('click', saveOpenArtifact);
     mdViewerReviewBtn.addEventListener('click', () => {
       if (!mdViewerReviewData?.available) return;
@@ -10502,14 +10852,79 @@
         if (conversation.length > 0) {
           conversation.forEach(m => {
             const b = document.createElement('div');
-            b.className = 'chat-bubble ' + (m.role === 'user' ? 'user' : 'assistant');
-            b.textContent = m.content;
+            const isUser = m.role === 'user';
+            b.className = 'chat-bubble ' + (isUser ? 'user' : 'assistant');
+            // Artemis V2 : assistant en markdown rendu, user en texte brut.
+            if (isUser) {
+              b.textContent = m.content;
+            } else {
+              b.innerHTML = renderMarkdown(m.content);
+            }
             messagesEl.appendChild(b);
           });
         }
 
         sendBtn.disabled = sending || !inputEl.value.trim();
         messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      // Artemis V2 : mini-renderer markdown sans dépendance externe.
+      // Gère : # / ## / ### headings, **gras**, *italique*, `code`,
+      // listes - et 1., liens <url>, sauts de ligne. Tout le reste est
+      // echappé HTML en premier → pas d'injection XSS depuis Claude.
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+      function renderMarkdown(src) {
+        const safe = escapeHtml(src);
+        const lines = safe.split(/\r?\n/);
+        const out = [];
+        let inUl = false;
+        let inOl = false;
+        const closeLists = () => {
+          if (inUl) { out.push('</ul>'); inUl = false; }
+          if (inOl) { out.push('</ol>'); inOl = false; }
+        };
+        const inline = (s) =>
+          s
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>');
+        for (const raw of lines) {
+          const line = raw.trimEnd();
+          let m;
+          if ((m = line.match(/^###\s+(.*)/))) {
+            closeLists(); out.push('<h3>' + inline(m[1]) + '</h3>'); continue;
+          }
+          if ((m = line.match(/^##\s+(.*)/))) {
+            closeLists(); out.push('<h2>' + inline(m[1]) + '</h2>'); continue;
+          }
+          if ((m = line.match(/^#\s+(.*)/))) {
+            closeLists(); out.push('<h1>' + inline(m[1]) + '</h1>'); continue;
+          }
+          if ((m = line.match(/^-\s+(.*)/))) {
+            if (!inUl) { closeLists(); out.push('<ul>'); inUl = true; }
+            out.push('<li>' + inline(m[1]) + '</li>');
+            continue;
+          }
+          if ((m = line.match(/^\d+\.\s+(.*)/))) {
+            if (!inOl) { closeLists(); out.push('<ol>'); inOl = true; }
+            out.push('<li>' + inline(m[1]) + '</li>');
+            continue;
+          }
+          if (line.trim() === '') {
+            closeLists(); continue;
+          }
+          closeLists();
+          out.push('<p>' + inline(line) + '</p>');
+        }
+        closeLists();
+        return out.join('\n');
       }
 
       function appendBubble(kind, text) {
@@ -10519,7 +10934,14 @@
         [...messagesEl.querySelectorAll('.chat-empty')].forEach(n => n.remove());
         const b = document.createElement('div');
         b.className = 'chat-bubble ' + kind;
-        b.textContent = text;
+        // Artemis V2 : markdown rendu pour les bulles assistant/loading.
+        // User bubbles + erreurs restent en texte brut (input utilisateur
+        // ou message système court, pas besoin de formatter).
+        if (kind === 'assistant' || kind === 'loading') {
+          b.innerHTML = renderMarkdown(text);
+        } else {
+          b.textContent = text;
+        }
         messagesEl.appendChild(b);
         messagesEl.scrollTop = messagesEl.scrollHeight;
         return b;
@@ -10563,7 +10985,22 @@
         } catch (e) {
           loadingBubble.remove();
           const msg = typeof e === 'string' ? e : (e && e.message) || String(e);
-          appendBubble('error', msg);
+          // On sauve le texte pour le restaurer si l'user clique "Réessayer"
+          const failedText = text;
+          const errBubble = appendBubble('error', msg);
+          // Artemis V2 : bouton "Réessayer" juste en dessous du message
+          // d'erreur. Re-injecte le texte dans l'input et le renvoie.
+          const retryBtn = document.createElement('button');
+          retryBtn.className = 'btn btn-secondary btn-sm chat-retry-btn';
+          retryBtn.textContent = '↻ Réessayer';
+          retryBtn.addEventListener('click', () => {
+            if (sending) return;
+            errBubble.remove();
+            inputEl.value = failedText;
+            send();
+          });
+          errBubble.appendChild(document.createElement('br'));
+          errBubble.appendChild(retryBtn);
           conversation.pop();
           persistConversation();
         } finally {

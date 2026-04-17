@@ -1,6 +1,6 @@
 {
-  "productName": "Artemis Paysages Dev",
-  "identifier": "com.artemis-paysages.enregistreur.dev",
+  "productName": "Artemis Paysages V2 Dev",
+  "identifier": "com.artemis-paysages.enregistreur.v2.dev",
   "app": {
     "macOSPrivateApi": true
   }

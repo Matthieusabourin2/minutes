@@ -220,6 +220,13 @@ enabled = false
 # Désactivé pour Artemis : les commerciaux font 90 % de RDV en face-à-face,
 # pas de visio. La détection auto Zoom/Teams/Webex génère des faux positifs
 # (le micro ambiant déclenche un recording en arrière-plan) et pollue
-# ~/.minutes/jobs/ avec des clips de quelques secondes sans valeur.
+# ~/.artemis-paysages-v2/jobs/ avec des clips de quelques secondes sans valeur.
 [call_detection]
+enabled = false
+
+# Intégration Calendar macOS désactivée par défaut : le polling AppleScript
+# spammait les logs quand Calendar.app n'était pas lancé. Mettre `enabled =
+# true` si tu utilises Calendar et veux voir tes prochains RDV dans le tray
+# menu + recevoir un prompt 3 min avant chaque meeting planifié.
+[calendar]
 enabled = false

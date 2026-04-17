@@ -1,6 +1,6 @@
 [package]
 name = "artemis-paysages-app"
-version = "0.1.0"
+version = "0.2.0-beta.1"
 edition = "2021"
 description = "Artemis Paysages — Enregistreur de réunion et analyse ProcessCom"
 
@@ -38,6 +38,12 @@ minisign-verify = "0.2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
 tauri-plugin-pty = "0.1"
 tauri-plugin-autostart = "2"
+# Artemis V2 : dépendance conservée pour que les types de
+# `tauri_plugin_updater::*` compilent encore dans le dead code de
+# commands.rs (cmd_install_update et co.). Le plugin N'est PAS
+# enregistré au runtime (voir main.rs) → toutes ces commandes sont
+# unreachable depuis le UI. À supprimer complètement quand on aura
+# nettoyé commands.rs.
 tauri-plugin-updater = "2"
 walkdir = { workspace = true }
 ureq = { workspace = true }

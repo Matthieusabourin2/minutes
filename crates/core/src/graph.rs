@@ -75,11 +75,11 @@ pub struct AliasSuggestion {
     pub shared_meetings: usize,
 }
 
-/// Database path: ~/.artemis-paysages/graph.db
+/// Database path: ~/.artemis-paysages-v2/graph.db
 pub fn db_path() -> PathBuf {
     let base = dirs::home_dir()
         .expect("home directory must exist for graph.db")
-        .join(".artemis-paysages");
+        .join(".artemis-paysages-v2");
     std::fs::create_dir_all(&base).ok();
     base.join("graph.db")
 }

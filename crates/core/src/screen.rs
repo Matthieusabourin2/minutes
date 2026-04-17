@@ -209,7 +209,7 @@ fn capture_screenshot(path: &Path) -> std::io::Result<()> {
 }
 
 /// Derive the screenshots directory for a given audio recording path.
-/// e.g., `/tmp/recording.wav` → `~/.artemis-paysages/screens/recording/`
+/// e.g., `/tmp/recording.wav` → `~/.artemis-paysages-v2/screens/recording/`
 pub fn screens_dir_for(audio_path: &Path) -> PathBuf {
     let stem = audio_path
         .file_stem()
@@ -218,7 +218,7 @@ pub fn screens_dir_for(audio_path: &Path) -> PathBuf {
 
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("/tmp"))
-        .join(".artemis-paysages")
+        .join(".artemis-paysages-v2")
         .join("screens")
         .join(stem)
 }

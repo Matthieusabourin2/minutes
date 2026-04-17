@@ -881,7 +881,7 @@ fn write_agent_prompt_file(
     use std::time::{SystemTime, UNIX_EPOCH};
 
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
-    let base_dir = home.join(".artemis-paysages").join("tmp");
+    let base_dir = home.join(".artemis-paysages-v2").join("tmp");
     std::fs::create_dir_all(&base_dir)?;
     #[cfg(unix)]
     {
@@ -2355,7 +2355,7 @@ PARTICIPANTS:
         assert_eq!(invocation.args[2], "--file");
         assert!(invocation.stdin_payload.is_none());
         let prompt_path = invocation.cleanup_path.expect("prompt path");
-        assert!(prompt_path.starts_with(dirs::home_dir().unwrap().join(".artemis-paysages").join("tmp")));
+        assert!(prompt_path.starts_with(dirs::home_dir().unwrap().join(".artemis-paysages-v2").join("tmp")));
         let file_contents = std::fs::read_to_string(&prompt_path).unwrap();
         assert_eq!(file_contents, "sensitive prompt");
         std::fs::remove_file(prompt_path).unwrap();
@@ -2364,7 +2364,7 @@ PARTICIPANTS:
     #[test]
     fn write_agent_prompt_file_creates_private_minutes_temp_file() {
         let prompt_path = write_agent_prompt_file("opencode", "top secret").unwrap();
-        assert!(prompt_path.starts_with(dirs::home_dir().unwrap().join(".artemis-paysages").join("tmp")));
+        assert!(prompt_path.starts_with(dirs::home_dir().unwrap().join(".artemis-paysages-v2").join("tmp")));
         let contents = std::fs::read_to_string(&prompt_path).unwrap();
         assert_eq!(contents, "top secret");
         #[cfg(unix)]

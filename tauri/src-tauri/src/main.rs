@@ -227,30 +227,9 @@ pub fn update_tray_state_with_mode(app: &tauri::AppHandle, is_active: bool, is_l
 //   * We do NOT operate our own update channel for the pilot. New
 //     versions are hand-delivered by Catalia as fresh installers.
 //
-// `check_for_update` is now a no-op that just logs once for any
-// future contributor scanning the binary. The tray menu item and
-// the `tauri.conf.json` updater plugin config are also removed
-// (see commit fix(artemis): neutralize auto-updater).
-
-async fn check_for_update(_app: &tauri::AppHandle) {
-    eprintln!("[updater] disabled in Artemis fork — no update channel");
-}
-
-fn notify_update_available(
-    app: &tauri::AppHandle,
-    version: &str,
-    body: &str,
-    download_bytes: Option<u64>,
-) {
-    let _ = app.emit(
-        "update-ready",
-        serde_json::json!({
-            "version": version,
-            "body": body,
-            "downloadBytes": download_bytes,
-        }),
-    );
-}
+// Artemis V2 : tout le code auto-updater upstream a été retiré.
+// Distribution via GitHub Releases manuelle (Catalia → Franck).
+// Voir commit fix(artemis-v2): remove dead updater code.
 
 // ── Calendar items in tray menu ──────────────────────────────
 
@@ -711,13 +690,9 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        // Artemis: plugin updater retiré. Le script CI supprime la
-        // conf `plugins.updater` du tauri.conf.json, mais Tauri 2 panique
-        // au démarrage avec "invalid type: null, expected struct Config"
-        // quand le plugin est enregistré sans config. On le neutralise
-        // au compile-time. cmd_install_update n'est plus appelable —
-        // bouton de debug Updater est déjà hidden côté UI.
-        // .plugin(tauri_plugin_updater::Builder::new().build())
+        // Artemis V2 : plugin tauri-plugin-updater complètement retiré
+        // (aussi bien du Cargo.toml que du runtime). Pas d'auto-update
+        // Artemis — distribution via GitHub Releases manuelle.
         .manage(commands::AppState {
             recording: recording.clone(),
             starting: starting.clone(),
@@ -753,10 +728,6 @@ fn main() {
                 };
                 Arc::new(Mutex::new(s))
             },
-            pending_update: Arc::new(Mutex::new(None)),
-            update_install_running: Arc::new(AtomicBool::new(false)),
-            update_install_cancel: Arc::new(AtomicBool::new(false)),
-            update_install_state: Arc::new(Mutex::new(commands::UpdateUiState::default())),
             palette_shortcut_enabled: palette_shortcut_enabled.clone(),
             palette_shortcut: palette_shortcut.clone(),
             palette_lifecycle: palette_lifecycle.clone(),
@@ -775,61 +746,7 @@ fn main() {
             // Clean up stale terminal workspaces from previous sessions
             context::cleanup_stale_workspaces();
 
-            let debug_update_state =
-                std::env::var("MINUTES_DEBUG_UPDATE_STATE")
-                    .ok()
-                    .or_else(|| {
-                        let path = minutes_core::config::Config::minutes_dir()
-                            .join("debug-update-state.txt");
-                        let value = std::fs::read_to_string(&path)
-                            .ok()
-                            .map(|s| s.trim().to_string());
-                        if value.is_some() {
-                            let _ = std::fs::remove_file(path);
-                        }
-                        value
-                    });
-            let allow_debug_update_state = app.config().identifier.contains(".dev");
-
-            if allow_debug_update_state {
-                if let Some(debug_update_state) = debug_update_state.clone() {
-                    let debug_handle = app.handle().clone();
-                    std::thread::spawn(move || {
-                        std::thread::sleep(std::time::Duration::from_millis(2500));
-                        if let Err(error) =
-                            commands::debug_emit_update_state(&debug_handle, &debug_update_state)
-                        {
-                            eprintln!(
-                                "[updater] debug startup state '{}' failed: {}",
-                                debug_update_state, error
-                            );
-                        }
-                    });
-                }
-            }
-
-            if !(allow_debug_update_state && debug_update_state.is_some()) {
-                // Auto-update: check on launch, then every 6 hours.
-                // Check-only (no download). Download starts only when the user
-                // accepts the update from the desktop banner.
-                // Defers notification if recording/live/dictation is active.
-                // Between checks, polls every 30s to surface deferred updates once sessions end.
-                let update_handle = app.handle().clone();
-                std::thread::spawn(move || {
-                    const CHECK_INTERVAL_SECS: u64 = 6 * 60 * 60;
-                    const DEFERRED_POLL_SECS: u64 = 30;
-
-                    loop {
-                        tauri::async_runtime::block_on(check_for_update(&update_handle));
-
-                        let polls = CHECK_INTERVAL_SECS / DEFERRED_POLL_SECS;
-                        for _ in 0..polls {
-                            std::thread::sleep(std::time::Duration::from_secs(DEFERRED_POLL_SECS));
-                            commands::surface_deferred_update(&update_handle);
-                        }
-                    }
-                });
-            }
+            // Artemis V2 : boucle auto-update upstream retirée entièrement.
 
             // Preload whisper model for dictation in background thread.
             // Only if dictation shortcuts are enabled — avoids 150MB RAM for
@@ -1247,12 +1164,7 @@ fn main() {
                                 win.set_content_protected(new_state).ok();
                             }
                         }
-                        "check-for-updates" => {
-                            let handle = app.clone();
-                            tauri::async_runtime::spawn(async move {
-                                check_for_update(&handle).await;
-                            });
-                        }
+                        // Artemis V2 : "check-for-updates" retiré — pas de canal auto-update.
                         "quit" => {
                             // Kill all PTY sessions before exiting
                             if let Ok(mut mgr) =
@@ -1507,9 +1419,9 @@ fn main() {
             commands::cmd_live_transcript_lines,
             commands::cmd_live_shortcut_settings,
             commands::cmd_set_live_shortcut,
-            commands::cmd_install_update,
-            commands::cmd_cancel_update_install,
-            commands::cmd_debug_simulate_update,
+            // Artemis V2 : commandes auto-updater retirées
+            //   cmd_install_update, cmd_cancel_update_install,
+            //   cmd_debug_simulate_update
             commands::cmd_check_whats_new,
             commands::cmd_dismiss_whats_new,
             commands::palette_close,
