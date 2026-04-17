@@ -5712,20 +5712,24 @@ pub fn cmd_needs_setup(state: tauri::State<AppState>) -> serde_json::Value {
 
 /// Artemis V2 : taille courante (en bytes) du fichier modèle en train d'être
 /// téléchargé. Utilisé par le JS pour polling de progression (1/s) pendant
-/// que `cmd_download_model` tourne en arrière-plan (curl ne nous donne pas
-/// de callback de progression via invoke). Retourne 0 si le fichier n'existe
-/// pas encore (début du download, avant que curl ait créé le fichier).
+/// que `cmd_download_model` streame chunk par chunk. Regarde d'abord le
+/// fichier .bin.part (en cours), puis fallback sur le .bin final (une fois
+/// le download complété + renommé).
 #[tauri::command]
 pub fn cmd_model_file_size(model: String) -> u64 {
     if validate_download_model_name(&model).is_err() {
         return 0;
     }
     let config = Config::load();
-    let path = config
+    let base = config
         .transcription
         .model_path
         .join(format!("ggml-{}.bin", model));
-    std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0)
+    let tmp = base.with_extension("bin.part");
+    std::fs::metadata(&tmp)
+        .or_else(|_| std::fs::metadata(&base))
+        .map(|m| m.len())
+        .unwrap_or(0)
 }
 
 #[tauri::command]
@@ -5733,75 +5737,95 @@ pub async fn cmd_download_model(
     state: tauri::State<'_, AppState>,
     model: String,
 ) -> Result<String, String> {
-    // Run in a blocking thread so the UI stays responsive during download
-    let activation_progress = state.activation_progress.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        validate_download_model_name(&model)?;
+    validate_download_model_name(&model)?;
 
-        let mut config = Config::load();
-        let model_dir = &config.transcription.model_path;
-        let model_file = model_dir.join(format!("ggml-{}.bin", model));
+    let mut config = Config::load();
+    let model_dir = config.transcription.model_path.clone();
+    let model_file = model_dir.join(format!("ggml-{}.bin", model));
 
-        if !model_file.exists() {
-            std::fs::create_dir_all(model_dir).map_err(|e| e.to_string())?;
+    if !model_file.exists() {
+        std::fs::create_dir_all(&model_dir)
+            .map_err(|e| format!("Création dossier modèles échouée: {}", e))?;
 
-            let url = format!(
-                "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin",
+        let url = format!(
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin",
+            model
+        );
+
+        eprintln!("[minutes] Downloading model: {} from {}", model, url);
+
+        // Artemis V2 : download natif Rust via reqwest (plus de subprocess
+        // curl qui flashait un cmd.exe sur Windows + dépendance système
+        // variable selon PATH / aliases PowerShell). Streaming chunk par
+        // chunk pour ne pas charger 1,6 Go en RAM. Le fichier partiel est
+        // lisible par cmd_model_file_size pour le polling de progression.
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(1800))
+            .build()
+            .map_err(|e| format!("Création client HTTP échouée: {}", e))?;
+
+        let response = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("Téléchargement échoué (réseau?): {}", e))?;
+
+        if !response.status().is_success() {
+            return Err(format!(
+                "Téléchargement refusé par le serveur (HTTP {})",
+                response.status()
+            ));
+        }
+
+        let tmp_path = model_file.with_extension("bin.part");
+        let mut file = std::fs::File::create(&tmp_path)
+            .map_err(|e| format!("Création fichier local échouée: {}", e))?;
+        use std::io::Write;
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.map_err(|e| format!("Lecture chunk échouée: {}", e))?;
+            file.write_all(&chunk)
+                .map_err(|e| format!("Écriture locale échouée: {}", e))?;
+        }
+        file.flush()
+            .map_err(|e| format!("Flush disque échoué: {}", e))?;
+        drop(file);
+
+        // Rename atomique tmp→final une fois le download complet, pour éviter
+        // qu'un fichier partiel soit pris pour un modèle valide au prochain
+        // launch si l'utilisateur ferme l'app pendant le download.
+        std::fs::rename(&tmp_path, &model_file)
+            .map_err(|e| format!("Finalisation fichier échouée: {}", e))?;
+    }
+
+    // Artemis V2 : synchroniser le config avec le modèle qu'on vient de
+    // télécharger. Sans ça, l'onboarding download "large-v3-turbo" mais
+    // config.transcription.model reste à "small" (valeur template) → la
+    // transcription charge le mauvais fichier et échoue.
+    let needs_persist = config.transcription.model != model
+        || config.dictation.model != model
+        || config.live_transcript.model != model;
+
+    if needs_persist {
+        config.transcription.model = model.clone();
+        config.dictation.model = model.clone();
+        config.live_transcript.model = model.clone();
+        if let Err(e) = config.save() {
+            eprintln!("[minutes] WARN: could not persist model choice: {}", e);
+        } else {
+            eprintln!(
+                "[minutes] config.transcription.model + dictation.model + live_transcript.model → '{}'",
                 model
             );
-
-            eprintln!("[minutes] Downloading model: {} from {}", model, url);
-
-            let status = std::process::Command::new("curl")
-                .args([
-                    "-L",
-                    "-o",
-                    &model_file.to_string_lossy(),
-                    &url,
-                    "--progress-bar",
-                ])
-                .status()
-                .map_err(|e| format!("curl failed: {}", e))?;
-
-            if !status.success() {
-                return Err("Download failed".into());
-            }
         }
+    }
 
-        // Artemis V2 : synchroniser le config avec le modèle qu'on vient
-        // de télécharger. Sans ça, l'onboarding download "large-v3-turbo"
-        // mais config.transcription.model reste à "small" (valeur template)
-        // → transcription charge le mauvais fichier et échoue.
-        let needs_persist = config.transcription.model != model
-            || config.dictation.model != model
-            || config.live_transcript.model != model;
+    let size = std::fs::metadata(&model_file)
+        .map(|m| m.len() / (1024 * 1024))
+        .unwrap_or(0);
+    mark_activation_model_ready(&state.activation_progress, &model_file);
 
-        if needs_persist {
-            config.transcription.model = model.clone();
-            // Sidecars (dictation + live_transcript) utilisent le même
-            // modèle par cohérence — sinon le DIRECT retomberait sur
-            // "small" et replongerait dans le bug "ggml-base.bin not found".
-            config.dictation.model = model.clone();
-            config.live_transcript.model = model.clone();
-            if let Err(e) = config.save() {
-                eprintln!("[minutes] WARN: could not persist model choice to config: {}", e);
-                // Non-fatal : le download a réussi, juste le config ne sera
-                // pas persisté. L'app utilisera le nouveau modèle dans cette
-                // session mais retomberait sur l'ancien au prochain launch.
-            } else {
-                eprintln!("[minutes] config.transcription.model + dictation.model + live_transcript.model → '{}'", model);
-            }
-        }
-
-        let size = std::fs::metadata(&model_file)
-            .map(|m| m.len() / (1024 * 1024))
-            .unwrap_or(0);
-        mark_activation_model_ready(&activation_progress, &model_file);
-
-        Ok(format!("Downloaded '{}' model ({} MB)", model, size))
-    })
-    .await
-    .map_err(|e| format!("Download task failed: {}", e))?
+    Ok(format!("Downloaded '{}' model ({} MB)", model, size))
 }
 
 #[tauri::command]

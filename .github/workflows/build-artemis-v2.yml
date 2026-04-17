@@ -17,13 +17,15 @@ env:
   CARGO_TERM_COLOR: always
   TAURI_CLI_VERSION: "2.10.1"
   ARTEMIS_FEATURES: "artemis-default-config"
-  # Artemis V2 : accélération matérielle whisper active par défaut sur les
-  # deux plateformes. Métal sur Apple Silicon (M1/M2/M3/M4) via ggml-metal,
-  # Vulkan sur Windows (universel : fonctionne avec les drivers GPU Intel,
-  # AMD, NVIDIA modernes). Sans ces flags, whisper retombe en CPU pur et
-  # le traitement prend ~4× le temps audio — hors cible user (≤ 1× RT).
+  # Artemis V2 : Métal sur Apple Silicon (M1/M2/M3/M4) via ggml-metal.
+  # Windows reste en CPU pour l'instant — beta.5 shippait Vulkan mais
+  # whisper-rs 0.16 n'a pas de fallback CPU auto quand `vulkan-1.dll`
+  # est absent/incompatible (machine vierge, drivers GPU non à jour),
+  # et le "failed to create a new whisper model context" bloquait tout
+  # le pipeline sans message exploitable. Revisite Vulkan-Windows avec
+  # détection runtime + fallback propre en beta.7+.
   ARTEMIS_FEATURES_MAC: "artemis-default-config,metal"
-  ARTEMIS_FEATURES_WIN: "artemis-default-config,vulkan"
+  ARTEMIS_FEATURES_WIN: "artemis-default-config"
 
 jobs:
   # ────────────────────────────────────────────────────────────────
@@ -99,23 +101,6 @@ jobs:
       - name: Install Tauri CLI
         shell: bash
         run: cargo install tauri-cli --version "${TAURI_CLI_VERSION}" --locked
-
-      # Artemis V2 : Vulkan SDK requis au BUILD par whisper-rs/vulkan (headers
-      # + loader). Au runtime, la plupart des laptops Windows 10/11 ont déjà
-      # le runtime Vulkan via leurs drivers GPU (Intel/AMD/NVIDIA).
-      - name: Install Vulkan SDK (Windows)
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $VulkanVersion = '1.3.290.0'
-          $InstallerUrl = "https://sdk.lunarg.com/sdk/download/$VulkanVersion/windows/VulkanSDK-$VulkanVersion-Installer.exe"
-          Write-Host "Downloading Vulkan SDK $VulkanVersion..."
-          Invoke-WebRequest -Uri $InstallerUrl -OutFile VulkanSDK-Installer.exe
-          Write-Host "Installing Vulkan SDK silently..."
-          Start-Process -FilePath .\VulkanSDK-Installer.exe -ArgumentList '--root', 'C:\VulkanSDK', '--accept-licenses', '--default-answer', '--confirm-command', 'install' -Wait
-          echo "VULKAN_SDK=C:\VulkanSDK" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          echo "C:\VulkanSDK\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-          Write-Host "Vulkan SDK installed at C:\VulkanSDK"
 
       - name: Generate Artemis default config (inject API key from secret)
         shell: bash
