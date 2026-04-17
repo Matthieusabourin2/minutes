@@ -22,6 +22,9 @@
       "icons/icon.ico",
       "icons/app-icon.png"
     ],
+    "resources": [
+      "bundled-models/*.onnx"
+    ],
     "copyright": "© Artemis Paysages. L'art d'embellir vos extérieurs.",
     "category": "Productivity",
     "shortDescription": "Artemis Paysages — Enregistreur de réunion",

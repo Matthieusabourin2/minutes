@@ -55,3 +55,6 @@ minutes.mcpb
 tauri/src-tauri/bin/system_audio_record
 tauri/src-tauri/bin/system_audio_record-*
 .vercel
+
+# Artemis V2 : modèles pyannote pre-fetched par CI, bundlés dans l'installeur
+tauri/src-tauri/bundled-models/

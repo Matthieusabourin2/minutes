@@ -105,6 +105,24 @@ jobs:
         run: |
           python3 .github/scripts/disable-tauri-updater.py
 
+      # Artemis V2 : pre-fetch des modèles pyannote pour bundling dans
+      # l'installeur. Évite aux users Franck d'avoir à télécharger les
+      # modèles manuellement après install.
+      - name: Pre-fetch pyannote diarization models (~34 Mo)
+        shell: bash
+        run: |
+          set -e
+          mkdir -p tauri/src-tauri/bundled-models
+          echo "Downloading segmentation-3.0.onnx (~5.7 Mo)..."
+          curl -L --fail --silent --show-error \
+            -o tauri/src-tauri/bundled-models/segmentation-3.0.onnx \
+            https://github.com/thewh1teagle/pyannote-rs/releases/download/v0.1.0/segmentation-3.0.onnx
+          echo "Downloading wespeaker_en_voxceleb_CAM++.onnx (~28 Mo)..."
+          curl -L --fail --silent --show-error \
+            -o "tauri/src-tauri/bundled-models/wespeaker_en_voxceleb_CAM++.onnx" \
+            https://github.com/thewh1teagle/pyannote-rs/releases/download/v0.1.0/wespeaker_en_voxceleb_CAM++.onnx
+          ls -lh tauri/src-tauri/bundled-models/
+
       - name: Build Tauri NSIS installer with Artemis V2 defaults
         working-directory: tauri/src-tauri
         shell: bash
@@ -179,6 +197,21 @@ jobs:
 
       - name: Disable Tauri updater artifacts (Artemis V2 has no update channel)
         run: python3 .github/scripts/disable-tauri-updater.py
+
+      # Artemis V2 : pre-fetch des modèles pyannote pour bundling dans le DMG
+      - name: Pre-fetch pyannote diarization models (~34 Mo)
+        run: |
+          set -e
+          mkdir -p tauri/src-tauri/bundled-models
+          echo "Downloading segmentation-3.0.onnx..."
+          curl -L --fail --silent --show-error \
+            -o tauri/src-tauri/bundled-models/segmentation-3.0.onnx \
+            https://github.com/thewh1teagle/pyannote-rs/releases/download/v0.1.0/segmentation-3.0.onnx
+          echo "Downloading wespeaker_en_voxceleb_CAM++.onnx..."
+          curl -L --fail --silent --show-error \
+            -o "tauri/src-tauri/bundled-models/wespeaker_en_voxceleb_CAM++.onnx" \
+            https://github.com/thewh1teagle/pyannote-rs/releases/download/v0.1.0/wespeaker_en_voxceleb_CAM++.onnx
+          ls -lh tauri/src-tauri/bundled-models/
 
       - name: Build Tauri app + DMG with Artemis V2 defaults (unsigned)
         working-directory: tauri/src-tauri

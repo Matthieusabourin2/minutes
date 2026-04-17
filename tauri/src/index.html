@@ -985,6 +985,81 @@
       min-height: 18px;
     }
 
+    /* Artemis V2 : dialog renommage intervenants */
+    .artemis-rename-list {
+      margin: 12px 0 18px;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .artemis-rename-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      grid-template-rows: auto auto;
+      gap: 4px 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .artemis-rename-row:last-child { border-bottom: none; }
+    .artemis-rename-label {
+      grid-column: 1;
+      grid-row: 1 / 3;
+      font-family: var(--font-mono, monospace);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      align-self: center;
+    }
+    .artemis-rename-sample {
+      grid-column: 2;
+      grid-row: 1;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-style: italic;
+      line-height: 1.4;
+    }
+    .artemis-rename-input {
+      grid-column: 2;
+      grid-row: 2;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+    .artemis-rename-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Artemis V2 : liste des voix enrôlées dans Settings */
+    .voice-profile-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .voice-profile-row:last-child { border-bottom: none; }
+    .voice-profile-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .voice-profile-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .voice-profile-date {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    @keyframes artemis-pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
     .recording-source-health {
       display: none;
       gap: 8px;
@@ -4382,6 +4457,7 @@
         <div class="detail-actions">
           <button class="btn btn-secondary btn-sm" id="btn-create-artifact">Créer un brouillon</button>
           <button class="btn btn-primary btn-sm" id="btn-discuss-ai">Échanger avec l'assistant</button>
+          <button class="btn btn-secondary btn-sm" id="btn-rename-speakers" hidden>👥 Renommer les intervenants</button>
           <button class="btn btn-secondary btn-sm" id="btn-open-external">Ouvrir dans l'éditeur</button>
           <button class="btn btn-danger btn-sm" id="btn-delete-meeting">Supprimer</button>
         </div>
@@ -4694,6 +4770,24 @@
             </div>
           </div>
         </div>
+        <!-- Artemis V2 : section Intervenants & voix enrôlées -->
+        <div class="about-controls">
+          <div class="about-controls-group">
+            <div class="about-controls-copy">Intervenants (diarisation)</div>
+            <div class="about-controls-meta">
+              La diarisation sépare les interlocuteurs dans la transcription
+              (SPEAKER_00, SPEAKER_01…). En enrôlant ta voix ci-dessous, les
+              futures transcriptions t'identifieront automatiquement par ton
+              prénom. Les autres intervenants restent en SPEAKER_XX et peuvent
+              être renommés manuellement depuis la popup d'un RDV.
+            </div>
+            <div id="voices-list" style="margin-top:10px"></div>
+            <div class="settings-section-inline settings-section-inline-tight" style="margin-top:10px">
+              <button class="btn btn-primary btn-sm" id="btn-enroll-voice">+ Enrôler ma voix</button>
+            </div>
+          </div>
+        </div>
+
         <div class="about-controls is-hidden" id="settings-parakeet-section">
           <div class="about-controls-group">
             <div class="about-controls-copy">Parakeet backend</div>
@@ -6566,6 +6660,253 @@
       if (e.target === renameOverlay) closeRenameModal();
     });
 
+    // ── Artemis V2 : renommage des intervenants post-RDV ──
+    // Lit les labels SPEAKER_XX présents dans le .md courant, propose à
+    // l'user de les nommer (ex: SPEAKER_00 → "Franck"), puis réécrit
+    // le markdown avec les vrais noms.
+    async function openRenameSpeakers() {
+      const path = currentMeetingPath;
+      if (!path) return;
+      let speakers;
+      try {
+        speakers = await invoke('cmd_extract_speakers', { path });
+      } catch (e) {
+        alert('Impossible de lire les intervenants : ' + e);
+        return;
+      }
+      if (!speakers || speakers.length === 0) {
+        await confirmViaDialog({
+          title: 'Aucun intervenant détecté',
+          message: 'Ce compte-rendu ne contient pas de labels SPEAKER_XX à renommer. La diarisation doit avoir été activée lors de l\'enregistrement (Réglages → Diarisation + modèles téléchargés).',
+          confirmLabel: 'OK',
+          cancelLabel: '',
+        });
+        return;
+      }
+
+      // Build dialog dynamiquement
+      const backdrop = document.createElement('div');
+      backdrop.className = 'artemis-confirm-backdrop';
+      backdrop.innerHTML = `
+        <div class="artemis-confirm-card" role="dialog" aria-modal="true" style="max-width:520px">
+          <div class="artemis-confirm-title">Renommer les intervenants</div>
+          <div class="artemis-confirm-message">Laisse vide pour garder le label générique. Le markdown sera réécrit avec les nouveaux noms.</div>
+          <div class="artemis-rename-list"></div>
+          <div class="artemis-confirm-actions">
+            <button class="btn btn-secondary btn-sm" data-role="cancel">Annuler</button>
+            <button class="btn btn-primary btn-sm" data-role="confirm">Appliquer</button>
+          </div>
+        </div>
+      `;
+      const list = backdrop.querySelector('.artemis-rename-list');
+      const inputs = {};
+      for (const sp of speakers) {
+        const row = document.createElement('div');
+        row.className = 'artemis-rename-row';
+        const labelEl = document.createElement('div');
+        labelEl.className = 'artemis-rename-label';
+        labelEl.textContent = sp.label;
+        const sampleEl = document.createElement('div');
+        sampleEl.className = 'artemis-rename-sample';
+        sampleEl.textContent = '« ' + (sp.sample || '').trim() + (sp.sample.length >= 120 ? '…' : '') + ' »';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Ex : Franck · Pierre · Client';
+        input.className = 'artemis-rename-input';
+        inputs[sp.label] = input;
+        row.appendChild(labelEl);
+        row.appendChild(sampleEl);
+        row.appendChild(input);
+        list.appendChild(row);
+      }
+      document.body.appendChild(backdrop);
+      setTimeout(() => { const first = list.querySelector('input'); if (first) first.focus(); }, 50);
+
+      return new Promise((resolve) => {
+        const finish = async (confirmed) => {
+          if (!confirmed) {
+            backdrop.remove();
+            resolve(false);
+            return;
+          }
+          // Build mapping (ignore empty values)
+          const mapping = {};
+          for (const [label, input] of Object.entries(inputs)) {
+            const v = input.value.trim();
+            if (v && v !== label) mapping[label] = v;
+          }
+          if (Object.keys(mapping).length === 0) {
+            backdrop.remove();
+            resolve(false);
+            return;
+          }
+          try {
+            await invoke('cmd_rename_speakers', { path, mapping });
+            backdrop.remove();
+            // Re-ouvrir le RDV pour voir les nouveaux noms
+            openMeetingDetail(path);
+            resolve(true);
+          } catch (e) {
+            alert('Erreur lors du renommage : ' + e);
+            backdrop.remove();
+            resolve(false);
+          }
+        };
+        backdrop.querySelector('[data-role="confirm"]').addEventListener('click', () => finish(true));
+        backdrop.querySelector('[data-role="cancel"]').addEventListener('click', () => finish(false));
+      });
+    }
+
+    document.getElementById('btn-rename-speakers').addEventListener('click', openRenameSpeakers);
+
+    // ── Artemis V2 : UI enrôlement vocal ──
+    async function refreshVoicesList() {
+      const container = document.getElementById('voices-list');
+      if (!container) return;
+      try {
+        const profiles = await invoke('cmd_list_voice_profiles');
+        container.innerHTML = '';
+        if (!profiles || profiles.length === 0) {
+          container.innerHTML = '<div class="about-controls-meta" style="font-style:italic">Aucune voix enrôlée pour le moment.</div>';
+          return;
+        }
+        for (const p of profiles) {
+          const row = document.createElement('div');
+          row.className = 'voice-profile-row';
+          const info = document.createElement('div');
+          info.className = 'voice-profile-info';
+          const name = document.createElement('span');
+          name.className = 'voice-profile-name';
+          name.textContent = p.name;
+          const date = document.createElement('span');
+          date.className = 'voice-profile-date';
+          try {
+            const d = new Date(p.enrolled_at);
+            date.textContent = 'enrôlé le ' + d.toLocaleDateString('fr-FR');
+          } catch { date.textContent = ''; }
+          info.appendChild(name);
+          info.appendChild(date);
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn btn-secondary btn-sm';
+          delBtn.textContent = 'Supprimer';
+          delBtn.addEventListener('click', async () => {
+            const ok = await confirmViaDialog({
+              title: `Supprimer la voix de ${p.name} ?`,
+              message: 'Cette voix ne sera plus reconnue automatiquement dans les futurs comptes-rendus. Les CR existants ne sont pas modifiés.',
+              confirmLabel: 'Supprimer',
+              confirmKind: 'danger',
+            });
+            if (!ok) return;
+            try {
+              await invoke('cmd_delete_voice_profile', { slug: p.slug });
+              refreshVoicesList();
+            } catch (e) {
+              alert('Erreur : ' + e);
+            }
+          });
+          row.appendChild(info);
+          row.appendChild(delBtn);
+          container.appendChild(row);
+        }
+      } catch (e) {
+        container.innerHTML = '<div class="about-controls-meta" style="color:var(--red,#A51F18)">Erreur : ' + e + '</div>';
+      }
+    }
+
+    async function openVoiceEnrollDialog() {
+      // Dialog 2 étapes : nom → record countdown → save
+      const backdrop = document.createElement('div');
+      backdrop.className = 'artemis-confirm-backdrop';
+      backdrop.innerHTML = `
+        <div class="artemis-confirm-card" role="dialog" aria-modal="true" style="max-width:460px">
+          <div class="artemis-confirm-title">Enrôler ta voix</div>
+          <div class="artemis-confirm-message">
+            Tu vas enregistrer 15 secondes de ta voix pour que l'app te reconnaisse automatiquement dans les futurs rendez-vous. Parle normalement (te présenter, raconter ta journée, peu importe — c'est ta voix qui compte pas le contenu).
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Ton prénom (ou nom complet)</label>
+            <input type="text" id="voice-enroll-name" class="artemis-rename-input" placeholder="Ex : Franck" autocomplete="off" style="width:100%" />
+          </div>
+          <div class="artemis-confirm-actions">
+            <button class="btn btn-secondary btn-sm" data-role="cancel">Annuler</button>
+            <button class="btn btn-primary btn-sm" data-role="start">Démarrer l'enregistrement</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+      const nameInput = backdrop.querySelector('#voice-enroll-name');
+      setTimeout(() => nameInput.focus(), 50);
+
+      const startBtn = backdrop.querySelector('[data-role="start"]');
+      const cancelBtn = backdrop.querySelector('[data-role="cancel"]');
+
+      cancelBtn.addEventListener('click', () => backdrop.remove());
+
+      startBtn.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
+        if (!name) {
+          nameInput.focus();
+          return;
+        }
+        // Swap le contenu pour la phase "recording countdown"
+        const card = backdrop.querySelector('.artemis-confirm-card');
+        card.innerHTML = `
+          <div class="artemis-progress-spinner" style="background:var(--red, #A51F18);border:none;animation:artemis-pulse 1s infinite"></div>
+          <div class="artemis-confirm-title">🎙 Enregistrement en cours…</div>
+          <div class="artemis-confirm-message" id="voice-enroll-countdown">Parle maintenant. Reste 15s.</div>
+        `;
+        // Enrôlement : on lance en parallèle le backend (bloquant 15s) +
+        // un countdown visuel pour l'user.
+        let remaining = 15;
+        const countdownEl = card.querySelector('#voice-enroll-countdown');
+        const tick = setInterval(() => {
+          remaining = Math.max(0, remaining - 1);
+          if (countdownEl) countdownEl.textContent = `Parle maintenant. Reste ${remaining}s.`;
+          if (remaining <= 0) clearInterval(tick);
+        }, 1000);
+
+        try {
+          const result = await invoke('cmd_voice_enroll', { name, durationSecs: 15 });
+          clearInterval(tick);
+          card.innerHTML = `
+            <div class="artemis-confirm-title">✓ Voix enrôlée</div>
+            <div class="artemis-confirm-message">
+              ${result.name} sera maintenant reconnu automatiquement dans les futurs rendez-vous.
+              ${result.multi_speaker_warning ? '<br><br><strong>⚠ Attention</strong> : plusieurs voix ont été détectées pendant l\'enrôlement. Pour un résultat optimal, refais l\'exercice dans un endroit calme avec uniquement toi qui parles.' : ''}
+            </div>
+            <div class="artemis-confirm-actions">
+              <button class="btn btn-primary btn-sm" data-role="done">OK</button>
+            </div>
+          `;
+          card.querySelector('[data-role="done"]').addEventListener('click', () => {
+            backdrop.remove();
+            refreshVoicesList();
+          });
+        } catch (e) {
+          clearInterval(tick);
+          card.innerHTML = `
+            <div class="artemis-confirm-title">Erreur d'enrôlement</div>
+            <div class="artemis-confirm-message" style="color:var(--red,#A51F18)">${e}</div>
+            <div class="artemis-confirm-actions">
+              <button class="btn btn-primary btn-sm" data-role="done">Fermer</button>
+            </div>
+          `;
+          card.querySelector('[data-role="done"]').addEventListener('click', () => backdrop.remove());
+        }
+      });
+    }
+
+    document.getElementById('btn-enroll-voice').addEventListener('click', openVoiceEnrollDialog);
+
+    // Rafraîchir la liste à l'ouverture des Settings
+    const _origOpenSettings = typeof openSettings === 'function' ? openSettings : null;
+    if (_origOpenSettings) {
+      openSettings = async function() {
+        await _origOpenSettings.apply(this, arguments);
+        refreshVoicesList();
+      };
+    }
+
     // ── Delete meeting (Artemis V2 : double confirmation explicite
     //    côté JS pour éviter les suppressions accidentelles) ──
     document.getElementById('btn-delete-meeting').addEventListener('click', async () => {
@@ -7469,6 +7810,19 @@
 
       detailOverlay.classList.add('active');
       persistRecallWorkspaceState({ currentMeetingPath: detail.path });
+
+      // Artemis V2 : afficher le bouton "Renommer intervenants" ssi le
+      // CR contient des labels SPEAKER_XX (= diarisation activée au record)
+      (async () => {
+        const renameBtn = document.getElementById('btn-rename-speakers');
+        if (!renameBtn) return;
+        try {
+          const speakers = await invoke('cmd_extract_speakers', { path: detail.path });
+          renameBtn.hidden = !(speakers && speakers.length > 0);
+        } catch (_) {
+          renameBtn.hidden = true;
+        }
+      })();
     }
 
     // Artemis: pile de navigation pour la popup détail. Chaque entrée

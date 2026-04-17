@@ -231,6 +231,80 @@ pub fn update_tray_state_with_mode(app: &tauri::AppHandle, is_active: bool, is_l
 // Distribution via GitHub Releases manuelle (Catalia → Franck).
 // Voir commit fix(artemis-v2): remove dead updater code.
 
+/// Artemis V2 : au 1er launch, copie les modèles pyannote embarqués dans
+/// l'installeur vers `~/.artemis-paysages-v2/models/diarization/`. Permet
+/// à la diarisation de marcher out-of-the-box sans download manuel via
+/// Terminal (ce qui bloquait l'expérience en beta.1/2). Idempotent — ne
+/// recopie pas si les fichiers existent déjà.
+fn seed_bundled_diarization_models(app_handle: &tauri::AppHandle) {
+    use tauri::Manager;
+
+    let config = minutes_core::config::Config::load();
+    let target_dir = config.diarization.model_path.clone();
+
+    // Si les 2 fichiers sont déjà là, rien à faire
+    let models = [
+        minutes_core::diarize::SEGMENTATION_MODEL,
+        minutes_core::diarize::embedding_model_for_config(&config).filename,
+    ];
+    let all_present = models.iter().all(|name| target_dir.join(name).exists());
+    if all_present {
+        return;
+    }
+
+    // Localise le dossier resources de l'app (dépend de la plateforme,
+    // Tauri abstrait ça)
+    let resource_dir = match app_handle.path().resource_dir() {
+        Ok(d) => d.join("bundled-models"),
+        Err(e) => {
+            eprintln!("[diarize-seed] resource_dir unavailable: {}", e);
+            return;
+        }
+    };
+
+    if !resource_dir.exists() {
+        eprintln!(
+            "[diarize-seed] resource dir {} n'existe pas — modèles non bundlés dans cet installeur",
+            resource_dir.display()
+        );
+        return;
+    }
+
+    if let Err(e) = std::fs::create_dir_all(&target_dir) {
+        eprintln!(
+            "[diarize-seed] create_dir_all {} failed: {}",
+            target_dir.display(),
+            e
+        );
+        return;
+    }
+
+    for name in &models {
+        let src = resource_dir.join(name);
+        let dst = target_dir.join(name);
+        if dst.exists() {
+            continue;
+        }
+        if !src.exists() {
+            eprintln!("[diarize-seed] modèle {} absent des resources bundle", name);
+            continue;
+        }
+        match std::fs::copy(&src, &dst) {
+            Ok(bytes) => {
+                eprintln!(
+                    "[diarize-seed] copié {} ({} Mo) vers {}",
+                    name,
+                    bytes / (1024 * 1024),
+                    dst.display()
+                );
+            }
+            Err(e) => {
+                eprintln!("[diarize-seed] copie {} échouée: {}", name, e);
+            }
+        }
+    }
+}
+
 // ── Calendar items in tray menu ──────────────────────────────
 
 const MAX_CALENDAR_ITEMS: usize = 3;
@@ -760,6 +834,12 @@ fn main() {
                     }
                 });
             }
+
+            // Artemis V2 : au 1er launch, copier les modèles pyannote
+            // bundlés (~34 Mo) depuis les ressources de l'app vers le
+            // dossier utilisateur. Permet à la diarisation de fonctionner
+            // dès le 1er RDV sans download manuel.
+            seed_bundled_diarization_models(app.handle());
 
             // Create main window on launch
             show_main_window(app.handle());
@@ -1347,6 +1427,11 @@ fn main() {
             commands::cmd_resume_recording,
             commands::cmd_is_paused,
             commands::cmd_model_file_size,
+            commands::cmd_extract_speakers,
+            commands::cmd_rename_speakers,
+            commands::cmd_list_voice_profiles,
+            commands::cmd_delete_voice_profile,
+            commands::cmd_voice_enroll,
             commands::cmd_open_file,
             commands::cmd_read_text_file,
             commands::cmd_get_text_file_access,

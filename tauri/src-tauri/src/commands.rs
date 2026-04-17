@@ -5005,6 +5005,239 @@ pub fn cmd_retry_recovery(
     Ok(())
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Artemis V2 : Voice enrollment UI (reproduit le flow CLI `minutes enroll`
+// mais accessible depuis l'app Tauri). L'utilisateur enregistre N secondes
+// de sa voix, pyannote extrait un embedding, on le sauvegarde dans
+// voices.db. Les RDV suivants font un match auto → SPEAKER_XX devient
+// "Franck" quand sa voix est détectée.
+// ─────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn cmd_list_voice_profiles() -> Result<Vec<serde_json::Value>, String> {
+    use minutes_core::voice;
+    let conn = voice::open_db().map_err(|e| e.to_string())?;
+    let profiles = voice::list_profiles(&conn).map_err(|e| e.to_string())?;
+    Ok(profiles
+        .into_iter()
+        .map(|p| {
+            serde_json::json!({
+                "slug": p.person_slug,
+                "name": p.name,
+                "enrolled_at": p.enrolled_at,
+                "sample_count": p.sample_count,
+            })
+        })
+        .collect())
+}
+
+#[tauri::command]
+pub fn cmd_delete_voice_profile(slug: String) -> Result<(), String> {
+    use minutes_core::voice;
+    let conn = voice::open_db().map_err(|e| e.to_string())?;
+    voice::delete_profile(&conn, &slug).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Enregistre N secondes de la voix de l'utilisateur via le mic, extrait
+/// un embedding pyannote + sauve dans voices.db. Bloquant (wrapped dans
+/// spawn_blocking) parce que record_to_wav + diarize sont synchrones.
+#[tauri::command]
+pub async fn cmd_voice_enroll(
+    state: tauri::State<'_, AppState>,
+    name: String,
+    duration_secs: u64,
+) -> Result<serde_json::Value, String> {
+    use minutes_core::{capture, diarize, voice};
+
+    // Guard : pas d'enrôlement si un record/live/dictation tourne
+    if state.recording.load(Ordering::Relaxed)
+        || state.live_transcript_active.load(Ordering::Relaxed)
+        || state.dictation_active.load(Ordering::Relaxed)
+    {
+        return Err("Un enregistrement est en cours. Arrête-le avant d'enrôler ta voix.".into());
+    }
+
+    let name_owned = name.trim().to_string();
+    if name_owned.is_empty() {
+        return Err("Le nom ne peut pas être vide.".into());
+    }
+
+    let duration = duration_secs.clamp(5, 120);
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let config = Config::load();
+
+        if !diarize::models_installed(&config) {
+            return Err(
+                "Modèles de diarisation non installés. Va dans Réglages > Diarisation pour les télécharger.".to_string(),
+            );
+        }
+
+        // Enregistre dans un fichier temp
+        let tmp_dir = std::env::temp_dir().join("artemis-enroll");
+        std::fs::create_dir_all(&tmp_dir).map_err(|e| e.to_string())?;
+        let tmp_path = tmp_dir.join(format!(
+            "enroll-{}.wav",
+            name_owned.chars().filter(|c| c.is_alphanumeric()).collect::<String>()
+        ));
+
+        let stop_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let flag_clone = stop_flag.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(duration));
+            flag_clone.store(true, std::sync::atomic::Ordering::Relaxed);
+        });
+
+        capture::record_to_wav(&tmp_path, stop_flag, &config)
+            .map_err(|e| format!("Échec de l'enregistrement : {}", e))?;
+
+        // Extract voice embedding via pyannote
+        let result = diarize::diarize(&tmp_path, &config).ok_or_else(|| {
+            "Impossible d'analyser la voix. Re-essaye dans une pièce calme en parlant clairement.".to_string()
+        })?;
+
+        if result.segments.is_empty() {
+            return Err(
+                "Aucune parole détectée. Vérifie ton micro (Réglages macOS > Sécurité > Microphone)."
+                    .into(),
+            );
+        }
+
+        // Enrolment mono-speaker : on prend le premier embedding
+        let (_, embedding) = result
+            .speaker_embeddings
+            .iter()
+            .next()
+            .ok_or_else(|| "Aucun embedding vocal produit.".to_string())?;
+        let embedding = embedding.clone();
+
+        let conn = voice::open_db().map_err(|e| e.to_string())?;
+        let slug: String = name_owned
+            .to_lowercase()
+            .chars()
+            .map(|c| if c.is_alphanumeric() { c } else { '-' })
+            .collect::<String>()
+            .trim_matches('-')
+            .to_string();
+
+        voice::save_profile_blended(
+            &conn,
+            &slug,
+            &name_owned,
+            &embedding,
+            "artemis-enroll",
+            voice::model_version(&config),
+        )
+        .map_err(|e| e.to_string())?;
+
+        // Cleanup
+        let _ = std::fs::remove_file(&tmp_path);
+
+        Ok(serde_json::json!({
+            "slug": slug,
+            "name": name_owned,
+            "multi_speaker_warning": result.num_speakers > 1,
+        }))
+    })
+    .await
+    .map_err(|e| format!("Tâche interrompue : {}", e))?
+}
+
+/// Artemis V2 : renomme les labels speakers dans un CR markdown.
+/// Prend un mapping `SPEAKER_00 -> "Franck"` et réécrit TOUTES les
+/// occurrences dans le fichier (transcription + frontmatter speaker_map).
+/// Fait via regex littéral simple, pas via re-parse YAML, pour ne pas
+/// toucher aux autres champs frontmatter.
+#[tauri::command]
+pub fn cmd_rename_speakers(
+    path: String,
+    mapping: std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    let config = Config::load();
+    let meeting_path = std::path::PathBuf::from(&path);
+    minutes_core::notes::validate_meeting_path(&meeting_path, &config.output_dir)?;
+
+    if mapping.is_empty() {
+        return Ok(()); // no-op
+    }
+
+    let mut content = std::fs::read_to_string(&meeting_path).map_err(|e| e.to_string())?;
+
+    // Trier les clés par longueur décroissante pour que SPEAKER_10 soit
+    // remplacé avant SPEAKER_1 (évite les remplacements partiels).
+    let mut keys: Vec<&String> = mapping.keys().collect();
+    keys.sort_by(|a, b| b.len().cmp(&a.len()));
+
+    for key in keys {
+        let value = mapping.get(key).unwrap();
+        // Sanitize pour éviter qu'un user tape "SPEAKER_00" en valeur
+        // (ça créerait un cycle de remplacement).
+        let value = value.trim();
+        if value.is_empty() {
+            continue;
+        }
+        // Remplacement littéral — on accepte toutes les occurrences du
+        // label dans le markdown + frontmatter.
+        content = content.replace(key, value);
+    }
+
+    std::fs::write(&meeting_path, content).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Artemis V2 : extrait la liste des labels SPEAKER_* présents dans un CR,
+/// avec un échantillon de ce qu'ils ont dit (pour aider l'user à deviner
+/// qui c'est). Retourné trié par numéro de label.
+#[tauri::command]
+pub fn cmd_extract_speakers(path: String) -> Result<Vec<serde_json::Value>, String> {
+    let config = Config::load();
+    let meeting_path = std::path::PathBuf::from(&path);
+    minutes_core::notes::validate_meeting_path(&meeting_path, &config.output_dir)?;
+
+    let content = std::fs::read_to_string(&meeting_path).map_err(|e| e.to_string())?;
+
+    // Scan pour trouver les SPEAKER_XX et capturer leur 1er verbatim.
+    let mut seen: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
+    // Regex simple : `SPEAKER_` suivi de chiffres, puis `:` ou ` (` ou ` `
+    for line in content.lines() {
+        if let Some(pos) = line.find("SPEAKER_") {
+            let rest = &line[pos..];
+            // Récupère le label (ex : "SPEAKER_00")
+            let label: String = rest
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if label.len() < 9 {
+                continue; // pas un label valide
+            }
+            // Capture un sample de la phrase qui suit
+            let after_label = &rest[label.len()..];
+            // Retirer éventuels `:`, ` (00:12)`, etc.
+            let sample = after_label
+                .trim_start_matches(':')
+                .trim_start()
+                .chars()
+                .take(120)
+                .collect::<String>();
+            // On garde le PREMIER sample (pas écraser)
+            seen.entry(label).or_insert(sample);
+        }
+    }
+
+    let result: Vec<serde_json::Value> = seen
+        .into_iter()
+        .map(|(label, sample)| {
+            serde_json::json!({
+                "label": label,
+                "sample": sample,
+            })
+        })
+        .collect();
+
+    Ok(result)
+}
+
 #[tauri::command]
 pub fn cmd_get_meeting_detail(path: String) -> Result<MeetingDetail, String> {
     let config = Config::load();
